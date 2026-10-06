@@ -3,7 +3,7 @@ Type: Package
 Title: Gravitational-wave Binary Parameter Conversions
 Version: 0.1.0
 Authors@R: c(
-    person("The Puddin Authors", role = c("aut", "cre"),
+    person("Daniel", "Williams", role = c("aut", "cre"),
            email = "puddin@example.com"))
 Description: R interface to the Puddin library, providing fast and accurate
     parameter transformations for compact binary systems in gravitational-wave

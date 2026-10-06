@@ -2,7 +2,7 @@
 name = "puddin-python"
 version = "0.1.0"
 edition = "2021"
-authors = ["The Puddin Authors"]
+authors = ["Daniel Williams"]
 repository = "https://github.com/transientlunatic/puddin"
 description = "Python bindings for Puddin"
 publish = false

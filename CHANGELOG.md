@@ -7,8 +7,10 @@
 
 ### Release pipeline
 - Fixed the PyPI publish action (`pypa/gh-action-pypi-publish`).
-- Release now verifies the tag against all package versions
-  (`scripts/check_version.py`) and runs the core tests first.
+- The git tag is the single source of truth for the version: every release job
+  stamps it into all manifests with `scripts/set_version.py` (so there is no
+  need to bump five files by hand), after a pre-flight job checks the tag and
+  runs the core tests.
 - A single job creates the GitHub Release; wheels, sdist, C libraries and CLI
   binaries are attached to it. Nothing is published until every build succeeds.
 - Added crates.io publishing of the `puddin` crate.

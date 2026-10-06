@@ -67,6 +67,15 @@ PUDDIN_LIB=$(pwd)/target/release R CMD INSTALL bindings/r
 cd bindings/r && Rscript tests/testthat.R
 ```
 
+### Releasing
+```bash
+git tag v0.2.0 && git push origin v0.2.0   # that's it
+python3 scripts/set_version.py v0.2.0      # optional: stamp versions locally
+```
+The tag is the source of truth; `release.yml` stamps it into `Cargo.toml`,
+`bindings/python/{Cargo,pyproject}.toml`, `Project.toml` and the R `DESCRIPTION`
+in every job.  Versions committed in the repo are placeholders.
+
 ### Docs
 ```bash
 pip install -r docs/requirements.txt
