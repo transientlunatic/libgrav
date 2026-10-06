@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### CI
+- R job installs testthat from the default (binary) repository and fails loudly if it is missing.
+
 ### Release pipeline
 - Fixed the PyPI publish action (`pypa/gh-action-pypi-publish`).
 - Release now verifies the tag against all package versions

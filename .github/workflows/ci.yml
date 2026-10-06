@@ -228,7 +228,9 @@ jobs:
           r-version: "release"
 
       - name: Install testthat
-        run: Rscript -e 'install.packages("testthat", repos = "https://cloud.r-project.org")'
+        # Use the runner's default repo (Posit Package Manager binaries); forcing
+        # cloud.r-project.org builds from source, which fails on R-release.
+        run: Rscript -e 'install.packages("testthat"); stopifnot(requireNamespace("testthat", quietly = TRUE))'
 
       - name: Install R package
         run: R CMD INSTALL bindings/r
