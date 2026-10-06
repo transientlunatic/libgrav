@@ -262,29 +262,28 @@ function transform_precessing_spins(
     m1_kg::Float64, m2_kg::Float64,
     f_ref::Float64, phase::Float64,
 )::NTuple{7,Float64}
-    args = (theta_jn, phi_jl, tilt1, tilt2, phi12, a1, a2, m1_kg, m2_kg, f_ref, phase)
     (
         ccall((:grav_transform_precessing_spins_iota, _LIB), Float64,
               (Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64),
-              args...),
+              theta_jn, phi_jl, tilt1, tilt2, phi12, a1, a2, m1_kg, m2_kg, f_ref, phase),
         ccall((:grav_transform_precessing_spins_s1x, _LIB), Float64,
               (Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64),
-              args...),
+              theta_jn, phi_jl, tilt1, tilt2, phi12, a1, a2, m1_kg, m2_kg, f_ref, phase),
         ccall((:grav_transform_precessing_spins_s1y, _LIB), Float64,
               (Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64),
-              args...),
+              theta_jn, phi_jl, tilt1, tilt2, phi12, a1, a2, m1_kg, m2_kg, f_ref, phase),
         ccall((:grav_transform_precessing_spins_s1z, _LIB), Float64,
               (Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64),
-              args...),
+              theta_jn, phi_jl, tilt1, tilt2, phi12, a1, a2, m1_kg, m2_kg, f_ref, phase),
         ccall((:grav_transform_precessing_spins_s2x, _LIB), Float64,
               (Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64),
-              args...),
+              theta_jn, phi_jl, tilt1, tilt2, phi12, a1, a2, m1_kg, m2_kg, f_ref, phase),
         ccall((:grav_transform_precessing_spins_s2y, _LIB), Float64,
               (Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64),
-              args...),
+              theta_jn, phi_jl, tilt1, tilt2, phi12, a1, a2, m1_kg, m2_kg, f_ref, phase),
         ccall((:grav_transform_precessing_spins_s2z, _LIB), Float64,
               (Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64),
-              args...),
+              theta_jn, phi_jl, tilt1, tilt2, phi12, a1, a2, m1_kg, m2_kg, f_ref, phase),
     )
 end
 
