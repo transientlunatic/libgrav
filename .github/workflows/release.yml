@@ -10,6 +10,42 @@ env:
 
 jobs:
 
+  # ── Pre-flight: tag must match package versions and the core tests must pass ─
+
+  verify:
+    name: Verify tag & tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check tag matches package versions
+        run: python3 scripts/check_version.py "${GITHUB_REF_NAME}"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: cargo test
+        run: cargo test -p puddin
+
+  # ── Create the GitHub Release once; other jobs only attach assets ──────────
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: verify
+    permissions:
+      contents: write
+    steps:
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+
   # ── Build binary wheels ─────────────────────────────────────────────────────
   #
   # We build for:
@@ -20,6 +56,7 @@ jobs:
 
   build-wheels:
     name: Wheel — ${{ matrix.target }} (${{ matrix.os }})
+    needs: verify
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -69,6 +106,7 @@ jobs:
 
   sdist:
     name: Source distribution
+    needs: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -99,12 +137,14 @@ jobs:
   publish:
     name: Publish to PyPI
     runs-on: ubuntu-latest
-    needs: [build-wheels, sdist]
+    needs: [build-wheels, sdist, build-wasm, build-c-library, build-cli]
+    # (all builds must succeed before anything is published anywhere)
     environment:
       name: pypi
       url: https://pypi.org/p/puddin
     permissions:
       id-token: write  # required for OIDC trusted publishing
+      contents: write  # to attach wheels/sdist to the GitHub Release
 
     steps:
       - name: Download all wheels
@@ -121,12 +161,18 @@ jobs:
           path: dist
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypa-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Attach wheels and sdist to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
 
   # ── Build WASM package ──────────────────────────────────────────────────────
 
   build-wasm:
     name: Build WASM package
+    needs: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -162,7 +208,7 @@ jobs:
   publish-npm:
     name: Publish to npm
     runs-on: ubuntu-latest
-    needs: build-wasm
+    needs: [build-wheels, sdist, build-wasm, build-c-library, build-cli]
     environment:
       name: npm
       url: https://www.npmjs.com/package/puddin-wasm
@@ -197,7 +243,8 @@ jobs:
   # Extract and point your build system at the lib + header.
 
   build-c-library:
-    name: C library — ${{ matrix.os }}
+    name: C library — ${{ matrix.archive }}
+    needs: create-release
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write        # required to upload assets to the GitHub Release
@@ -208,9 +255,15 @@ jobs:
           - os: ubuntu-latest
             lib_file: libpuddin_julia.so
             archive: puddin-c-linux-x86_64.tar.gz
+          - os: ubuntu-24.04-arm
+            lib_file: libpuddin_julia.so
+            archive: puddin-c-linux-aarch64.tar.gz
           - os: macos-latest
             lib_file: libpuddin_julia.dylib
             archive: puddin-c-macos-arm64.tar.gz
+          - os: macos-13
+            lib_file: libpuddin_julia.dylib
+            archive: puddin-c-macos-x86_64.tar.gz
           - os: windows-latest
             lib_file: puddin_julia.dll
             archive: puddin-c-windows-x86_64.zip
@@ -253,7 +306,8 @@ jobs:
   # Users can extract it and place it on their PATH — no Rust toolchain needed.
 
   build-cli:
-    name: CLI binary — ${{ matrix.os }}
+    name: CLI binary — ${{ matrix.archive }}
+    needs: create-release
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write        # required to upload assets to the GitHub Release
@@ -264,9 +318,15 @@ jobs:
           - os: ubuntu-latest
             bin: puddin
             archive: puddin-cli-linux-x86_64.tar.gz
+          - os: ubuntu-24.04-arm
+            bin: puddin
+            archive: puddin-cli-linux-aarch64.tar.gz
           - os: macos-latest
             bin: puddin
             archive: puddin-cli-macos-arm64.tar.gz
+          - os: macos-13
+            bin: puddin
+            archive: puddin-cli-macos-x86_64.tar.gz
           - os: windows-latest
             bin: puddin.exe
             archive: puddin-cli-windows-x86_64.zip
@@ -300,3 +360,27 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ matrix.archive }}
+
+  # ── Publish the core Rust crate to crates.io ────────────────────────────────
+  #
+  # Before this will work, create a repository secret CARGO_REGISTRY_TOKEN
+  # (crates.io → Account Settings → API Tokens, scope: publish-new/publish-update).
+
+  publish-crates:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    needs: [build-wheels, sdist, build-wasm, build-c-library, build-cli]
+    environment:
+      name: crates-io
+      url: https://crates.io/crates/puddin
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Publish
+        run: cargo publish -p puddin
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

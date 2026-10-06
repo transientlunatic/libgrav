@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+repository.workspace = true
+description = "C ABI shared library for Puddin (used by Julia, C, C++, Fortran, Go, MATLAB, R)"
+
+publish = false
 
 [lib]
 # cdylib produces libpuddin_julia.so / .dylib / .dll
