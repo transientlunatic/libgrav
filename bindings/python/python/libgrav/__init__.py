@@ -1,12 +1,12 @@
-"""Puddin — mathematical and physical primitives for gravitational-wave astronomy.
+"""libgrav — mathematical and physical primitives for gravitational-wave astronomy.
 
 Public API
 ----------
 Functions are organised into submodules by physics domain:
 
-* :mod:`puddin.binary` – compact binary parameter conversions (masses, spins)
+* :mod:`libgrav.binary` – compact binary parameter conversions (masses, spins)
 
-All functions are also importable directly from the top-level ``puddin``
+All functions are also importable directly from the top-level ``libgrav``
 namespace for convenience.  They accept:
 
 * plain ``float`` or ``numpy.ndarray`` (assumed SI: kg, rad, dimensionless)
@@ -23,15 +23,15 @@ Mass functions return values in **kilograms**; use ``astropy.constants`` or
 Examples
 --------
 >>> import numpy as np
->>> import puddin.binary
->>> puddin.binary.chirp_mass(30 * 1.989e30, 30 * 1.989e30)   # plain SI
+>>> import libgrav.binary
+>>> libgrav.binary.chirp_mass(30 * 1.989e30, 30 * 1.989e30)   # plain SI
 array([...])
 
 >>> from astropy import units as u
->>> puddin.binary.chirp_mass(30 * u.Msun, 30 * u.Msun)
+>>> libgrav.binary.chirp_mass(30 * u.Msun, 30 * u.Msun)
 array([...])
 
->>> from puddin import chirp_mass          # top-level shortcut still works
+>>> from libgrav import chirp_mass          # top-level shortcut still works
 >>> chirp_mass(30 * 1.989e30, 30 * 1.989e30)
 array([...])
 """
@@ -40,11 +40,11 @@ from __future__ import annotations
 
 # ── submodule ─────────────────────────────────────────────────────────────────
 
-from puddin import binary  # noqa: F401 — expose as puddin.binary
+from libgrav import binary  # noqa: F401 — expose as libgrav.binary
 
 # ── top-level re-exports (backward-compatible shortcuts) ─────────────────────
 
-from puddin.binary import (  # noqa: F401
+from libgrav.binary import (  # noqa: F401
     total_mass,
     mass_ratio,
     symmetric_mass_ratio,
@@ -53,6 +53,9 @@ from puddin.binary import (  # noqa: F401
     masses_from_chirp_mass_eta,
     chi_eff,
     chi_p,
+    spin_components,
+    orbital_angular_momentum,
+    transform_precessing_spins,
 )
 
 __all__ = [
@@ -65,4 +68,7 @@ __all__ = [
     "masses_from_chirp_mass_eta",
     "chi_eff",
     "chi_p",
+    "spin_components",
+    "orbital_angular_momentum",
+    "transform_precessing_spins",
 ]

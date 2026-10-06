@@ -1,11 +1,11 @@
-"""Unit adapter layer for puddin.
+"""Unit adapter layer for libgrav.
 
 Accepts quantities from either ``astropy.units`` or ``pint`` and normalises
 them to plain SI numpy arrays.  Both libraries expose a compatible
 ``.to(unit).value`` / ``.to(unit).magnitude`` interface; we detect which is
 present via duck-typing so callers are not forced to use a specific library.
 
-All public functions in puddin expect SI inputs:
+All public functions in libgrav expect SI inputs:
 
 * mass → kilograms
 * angle → radians
@@ -21,7 +21,11 @@ _SI_UNIT = {
     "mass": "kg",
     "angle": "rad",
     "dimensionless": "",
+    "frequency": "Hz",
 }
+
+# Explicit sentinel to avoid `or` mishandling zero-valued arrays.
+_MISSING = object()
 
 
 def _to_si(value, expected_physical_type: str) -> np.ndarray:
@@ -48,8 +52,10 @@ def _to_si(value, expected_physical_type: str) -> np.ndarray:
     if hasattr(value, "to"):
         # astropy: .to(unit).value  |  pint: .to(unit).magnitude
         converted = value.to(si_unit) if si_unit else value
-        raw = getattr(converted, "value", None) or getattr(converted, "magnitude", None)
-        if raw is None:
+        raw = getattr(converted, "value", _MISSING)
+        if raw is _MISSING:
+            raw = getattr(converted, "magnitude", _MISSING)
+        if raw is _MISSING:
             raise TypeError(
                 f"Cannot extract numeric value from {type(value).__qualname__}. "
                 "Expected an astropy.units.Quantity or pint.Quantity."
@@ -72,3 +78,8 @@ def to_rad(value) -> np.ndarray:
 def to_dimensionless(value) -> np.ndarray:
     """Strip units from a dimensionless *value*."""
     return _to_si(value, "dimensionless")
+
+
+def to_hz(value) -> np.ndarray:
+    """Convert *value* (frequency) to hertz."""
+    return _to_si(value, "frequency")

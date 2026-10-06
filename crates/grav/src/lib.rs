@@ -1,4 +1,4 @@
-//! Puddin — mathematical and physical primitives for gravitational-wave astronomy.
+//! Grav — mathematical and physical primitives for gravitational-wave astronomy.
 //!
 //! This crate provides the geometric and algebraic building blocks needed to
 //! describe compact binary systems, coordinate systems, and sky geometry.

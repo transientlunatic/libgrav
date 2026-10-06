@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-check_api_coverage.py — Verify that every public Puddin function listed in
+check_api_coverage.py — Verify that every public libgrav function listed in
 api.toml is implemented in every binding layer.
 
 Exit code 0 = all present.  Non-zero = at least one gap found.
@@ -54,7 +54,7 @@ def main() -> int:
 
         # ── Rust core ────────────────────────────────────────────────────────
         ensure(failures, "rust",
-               "crates/puddin/src/binary.rs",
+               "crates/grav/src/binary.rs",
                f"pub fn {name}(")
 
         # ── C ABI  (library source + header) ────────────────────────────────
@@ -63,7 +63,7 @@ def main() -> int:
                    "bindings/julia/src/lib.rs",
                    f"{sym}(")
             ensure(failures, "c_header",
-                   "bindings/julia/include/puddin.h",
+                   "bindings/julia/include/grav.h",
                    f"{sym}(")
 
         # ── Require all binding-layer keys to be declared ────────────────────
@@ -77,7 +77,7 @@ def main() -> int:
         # ── CLI ──────────────────────────────────────────────────────────────
         if "cli" in fn:
             ensure(failures, "cli",
-                   "crates/puddin-cli/src/main.rs",
+                   "crates/grav-cli/src/main.rs",
                    fn["cli"])
 
         # ── Python ───────────────────────────────────────────────────────────
@@ -88,38 +88,38 @@ def main() -> int:
                    f"wrap_pyfunction!({fn['python']}")
             # Public Python layer must expose it
             ensure(failures, "python_public",
-                   "bindings/python/python/puddin/__init__.py",
+                   "bindings/python/python/libgrav/__init__.py",
                    fn["python"])
             # JAX wrapper must have a matching implementation
             ensure(failures, "python_jax",
-                   "bindings/python/python/puddin/jax_wrapper.py",
+                   "bindings/python/python/libgrav/jax_wrapper.py",
                    f"def {fn['python']}(")
 
         # ── Julia ────────────────────────────────────────────────────────────
         if "julia" in fn:
             ensure(failures, "julia",
-                   "bindings/julia/src/Puddin.jl",
+                   "bindings/julia/src/Grav.jl",
                    f"function {fn['julia']}(")
 
         # ── R (R source + NAMESPACE + native C shim) ─────────────────────────
         if "r" in fn:
             ensure(failures, "r_source",
-                   "bindings/r/R/puddin.R",
+                   "bindings/r/R/grav.R",
                    fn["r"])
             ensure(failures, "r_namespace",
                    "bindings/r/NAMESPACE",
                    fn["r"])
             # Verify the native C shim that adapts the C ABI to R's .C() convention
             for sym in as_list(fn.get("c_abi", [])):
-                r_sym = sym.replace("puddin_", "r_puddin_")
+                r_sym = sym.replace("grav_", "r_grav_")
                 ensure(failures, "r_c_shim",
-                       "bindings/r/src/puddin_r.c",
+                       "bindings/r/src/grav_r.c",
                        f"{r_sym}(")
 
         # ── WASM (TypeScript wrapper + Rust wasm_bindgen export) ────────────
         if "wasm" in fn:
             ensure(failures, "wasm_ts",
-                   "bindings/wasm/js/puddin.ts",
+                   "bindings/wasm/js/libgrav.ts",
                    fn["wasm"])
             # Verify the underlying wasm_bindgen Rust source calls the core function
             ensure(failures, "wasm_rust",

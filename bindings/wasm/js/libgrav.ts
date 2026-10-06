@@ -1,7 +1,7 @@
 /**
- * TypeScript helpers for the Puddin WASM package.
+ * TypeScript helpers for the Grav WASM package.
  *
- * The raw WASM module (`puddin-wasm`) exposes vectorised functions that accept
+ * The raw WASM module (`grav-wasm`) exposes vectorised functions that accept
  * `Float64Array`.  This wrapper adds:
  *
  *   - `MSUN` – solar mass constant (kg)
@@ -10,7 +10,7 @@
  *
  * Usage (ESM / bundler):
  * ```ts
- * import { MSUN, chirp_mass, chirp_mass_scalar } from 'puddin-wasm/puddin';
+ * import { MSUN, chirp_mass, chirp_mass_scalar } from 'grav-wasm/libgrav';
  *
  * const mc = chirp_mass_scalar(30 * MSUN, 30 * MSUN);  // kg
  * ```
@@ -28,7 +28,7 @@ import {
   masses_from_chirp_mass_eta_m2 as _mc_eta_m2,
   symmetric_mass_ratio as _symmetric_mass_ratio,
   total_mass as _total_mass,
-} from "./puddin_wasm.js";
+} from "./grav_wasm.js";
 
 // ── constants ─────────────────────────────────────────────────────────────────
 

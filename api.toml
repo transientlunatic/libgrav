@@ -1,28 +1,28 @@
-# api.toml — Canonical registry of all public Puddin functions.
+# api.toml — Canonical registry of all public libgrav functions.
 #
 # Used by scripts/check_api_coverage.py (run in CI as the "api-coverage" job)
 # to verify that every function listed below is wired up in every binding layer.
 #
 # Update this file whenever you add, rename, or remove a public function in
-# crates/puddin/src/binary.rs.  The CI job will fail if any function declared
+# crates/grav/src/binary.rs.  The CI job will fail if any function declared
 # here is missing from, or misnamed in, one of the binding layers; it does not
 # currently detect additional public functions in binary.rs that are not
 # registered in this file.
 #
 # Fields
-#   rust_name  public fn name in crates/puddin/src/binary.rs
-#   c_abi      symbol(s) exported by bindings/julia/src/lib.rs and puddin.h
+#   rust_name  public fn name in crates/grav/src/binary.rs
+#   c_abi      symbol(s) exported by bindings/julia/src/lib.rs and grav.h
 #              (tuple-returning Rust fns split into multiple scalars)
-#   cli        Rust identifier used in crates/puddin-cli/src/main.rs
+#   cli        Rust identifier used in crates/grav-cli/src/main.rs
 #   python     function registered in bindings/python/src/lib.rs
-#   julia      function defined in bindings/julia/src/Puddin.jl
-#   r          function exported from bindings/r/R/puddin.R + NAMESPACE
-#   wasm       user-facing export in bindings/wasm/js/puddin.ts
+#   julia      function defined in bindings/julia/src/Grav.jl
+#   r          function exported from bindings/r/R/grav.R + NAMESPACE
+#   wasm       user-facing export in bindings/wasm/js/libgrav.ts
 #              (the TypeScript wrapper; underlying Rust symbols may differ)
 
 [[function]]
 rust_name = "total_mass"
-c_abi     = ["puddin_total_mass"]
+c_abi     = ["grav_total_mass"]
 cli       = "total_mass"
 python    = "total_mass"
 julia     = "total_mass"
@@ -31,7 +31,7 @@ wasm      = "total_mass"
 
 [[function]]
 rust_name = "mass_ratio"
-c_abi     = ["puddin_mass_ratio"]
+c_abi     = ["grav_mass_ratio"]
 cli       = "mass_ratio"
 python    = "mass_ratio"
 julia     = "mass_ratio"
@@ -40,7 +40,7 @@ wasm      = "mass_ratio"
 
 [[function]]
 rust_name = "symmetric_mass_ratio"
-c_abi     = ["puddin_symmetric_mass_ratio"]
+c_abi     = ["grav_symmetric_mass_ratio"]
 cli       = "symmetric_mass_ratio"
 python    = "symmetric_mass_ratio"
 julia     = "symmetric_mass_ratio"
@@ -49,7 +49,7 @@ wasm      = "symmetric_mass_ratio"
 
 [[function]]
 rust_name = "chirp_mass"
-c_abi     = ["puddin_chirp_mass"]
+c_abi     = ["grav_chirp_mass"]
 cli       = "chirp_mass"
 python    = "chirp_mass"
 julia     = "chirp_mass"
@@ -59,7 +59,7 @@ wasm      = "chirp_mass"
 [[function]]
 rust_name = "masses_from_chirp_mass_q"
 # Tuple return → split into two scalar C ABI symbols
-c_abi     = ["puddin_m1_from_mc_q", "puddin_m2_from_mc_q"]
+c_abi     = ["grav_m1_from_mc_q", "grav_m2_from_mc_q"]
 cli       = "masses_from_chirp_mass_q"
 python    = "masses_from_chirp_mass_q"
 julia     = "masses_from_chirp_mass_q"
@@ -69,7 +69,7 @@ wasm      = "masses_from_chirp_mass_q"
 [[function]]
 rust_name = "masses_from_chirp_mass_eta"
 # Tuple return → split into two scalar C ABI symbols
-c_abi     = ["puddin_m1_from_mc_eta", "puddin_m2_from_mc_eta"]
+c_abi     = ["grav_m1_from_mc_eta", "grav_m2_from_mc_eta"]
 cli       = "masses_from_chirp_mass_eta"
 python    = "masses_from_chirp_mass_eta"
 julia     = "masses_from_chirp_mass_eta"
@@ -78,7 +78,7 @@ wasm      = "masses_from_chirp_mass_eta"
 
 [[function]]
 rust_name = "chi_eff"
-c_abi     = ["puddin_chi_eff"]
+c_abi     = ["grav_chi_eff"]
 cli       = "chi_eff"
 python    = "chi_eff"
 julia     = "chi_eff"
@@ -87,7 +87,7 @@ wasm      = "chi_eff"
 
 [[function]]
 rust_name = "chi_p"
-c_abi     = ["puddin_chi_p"]
+c_abi     = ["grav_chi_p"]
 cli       = "chi_p"
 python    = "chi_p"
 julia     = "chi_p"

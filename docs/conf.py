@@ -1,8 +1,8 @@
 # Configuration file for the Sphinx documentation builder.
 
-project = "Puddin"
-copyright = "2026, The Puddin Authors"
-author = "The Puddin Authors"
+project = "libgrav"
+copyright = "2026, The libgrav Authors"
+author = "The libgrav Authors"
 release = "0.1.0"
 
 extensions = [
@@ -13,7 +13,7 @@ extensions = [
 
 # sphinx-rust: paths to Cargo.toml of each crate to document
 rust_crates = [
-    "../crates/puddin",
+    "../crates/grav",
 ]
 
 # MyST
@@ -21,7 +21,7 @@ myst_enable_extensions = ["dollarmath", "amsmath"]
 
 # HTML theme
 html_theme = "furo"
-html_title = "Puddin"
+html_title = "libgrav"
 
 # Source file suffixes
 source_suffix = {

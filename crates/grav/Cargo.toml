@@ -1,5 +1,5 @@
 [package]
-name = "puddin"
+name = "grav"
 description = "Mathematical and physical primitives for gravitational-wave astronomy"
 version.workspace = true
 edition.workspace = true

@@ -1,4 +1,4 @@
-# Puddin — Claude context
+# libgrav — Claude context
 
 Small, focused Rust library of mathematical primitives for gravitational-wave
 astronomy.  No waveforms, no detectors.  Currently implements binary system
@@ -8,7 +8,7 @@ parameter conversions (`chirp mass`, `mass ratio`, `symmetric mass ratio`,
 ## Repository layout
 
 ```
-crates/puddin/          Core Rust library (uom SI units, proptest)
+crates/grav/          Core Rust library (uom SI units, proptest)
 bindings/julia/         cdylib C ABI — used by Julia, C, C++, Fortran, Go, MATLAB, R
 bindings/python/        PyO3/maturin extension — excluded from Cargo workspace
 bindings/wasm/          wasm-bindgen — workspace member but requires wasm32 target
@@ -22,22 +22,22 @@ docs/                   Sphinx + sphinx-rust + furo + myst-parser + sphinxcontri
 
 ### Rust
 ```bash
-cargo test -p puddin                          # run core tests (26 tests)
-cargo clippy -p puddin -p puddin-julia -p puddin-cli -- -D warnings   # lint workspace crates
+cargo test -p grav                          # run core tests (26 tests)
+cargo clippy -p grav -p grav-capi -p grav-cli -- -D warnings   # lint workspace crates
 cargo fmt --all --check                       # check formatting
-cargo doc -p puddin --no-deps                 # generate Rust API docs
+cargo doc -p grav --no-deps                 # generate Rust API docs
 ```
 
-### CLI (crates/puddin-cli)
+### CLI (crates/grav-cli)
 ```bash
-cargo build --release -p puddin-cli           # produces target/release/puddin
-cargo install --path crates/puddin-cli        # install to ~/.cargo/bin/puddin
+cargo build --release -p grav-cli           # produces target/release/grav
+cargo install --path crates/grav-cli        # install to ~/.cargo/bin/grav
 
-puddin chirp-mass 30 30                       # chirp mass in Msun (stdout: bare number)
-puddin chirp-mass 30 30 --verbose             # prints: chirp_mass = 26.1165 Msun
-puddin chi-eff 30 30 0.5 0.5 0.0 0.0         # χ_eff
-puddin chi-p   30 15 0.8 0.3 0.4 1.2         # χ_p
-puddin --si chirp-mass 5.97e30 5.97e30        # masses in kg
+grav chirp-mass 30 30                       # chirp mass in Msun (stdout: bare number)
+grav chirp-mass 30 30 --verbose             # prints: chirp_mass = 26.1165 Msun
+grav chi-eff 30 30 0.5 0.5 0.0 0.0         # χ_eff
+grav chi-p   30 15 0.8 0.3 0.4 1.2         # χ_p
+grav --si chirp-mass 5.97e30 5.97e30        # masses in kg
 ```
 
 ### Python bindings (must be run from bindings/python — uses maturin)
@@ -55,15 +55,15 @@ wasm-pack build --target bundler --out-dir pkg
 
 ### Julia
 ```bash
-cargo build --release -p puddin-julia         # build the shared library first
+cargo build --release -p grav-capi         # build the shared library first
 cd bindings/julia
 julia --project=. test/runtests.jl
 ```
 
 ### R
 ```bash
-cargo build --release -p puddin-julia         # shared library required
-PUDDIN_LIB=$(pwd)/target/release R CMD INSTALL bindings/r
+cargo build --release -p grav-capi         # shared library required
+GRAV_LIB=$(pwd)/target/release R CMD INSTALL bindings/r
 cd bindings/r && Rscript tests/testthat.R
 ```
 
@@ -76,20 +76,20 @@ sphinx-build -n -b html docs/ docs/_build/html
 ## Key constraints
 
 - **`bindings/python` is excluded from the Cargo workspace** — it must be built
-  through `maturin`.  Never add it to `[workspace.members]`.  Use `-p puddin`
+  through `maturin`.  Never add it to `[workspace.members]`.  Use `-p grav`
   not `--workspace` in Rust CI commands.
 - **`uom` v0.36 has no `solar_mass` unit** — use `kilogram` +
   `pub const MSUN: f64 = 1.988_416e30`.
 - **`chi_p` convention**: `m1 >= m2` is required.  Enforced with
   `debug_assert!` in release builds and `prop_assume!` in property tests.
-- **`opt-level = "z"` only applies to `puddin-wasm`** via
-  `[profile.release.package.puddin-wasm]`.  The global `[profile.release]`
+- **`opt-level = "z"` only applies to `grav-wasm`** via
+  `[profile.release.package.grav-wasm]`.  The global `[profile.release]`
   only sets `lto = true`.
 - **WASM clippy** runs under the wasm-build CI job (full `wasm-pack build`),
   not under `rust-checks`.  The `rust-checks` clippy step covers
-  `-p puddin -p puddin-julia` only.
+  `-p grav -p grav-capi` only.
 - **C ABI shared library**: `bindings/julia` produces
-  `libpuddin_julia.{so,dylib,dll}` and `bindings/julia/include/puddin.h`.
+  `libgrav.{so,dylib,dll}` and `bindings/julia/include/grav.h`.
   All non-Rust/non-Python consumers (C, C++, Fortran, Go, MATLAB, R) depend
   on this library.
 

@@ -2,7 +2,7 @@
 
 A compact binary system is characterised by the masses and spins of its two
 components.  This page documents the parameterisations implemented in the
-`puddin::binary` module and the conventions used throughout the library.
+`grav::binary` module and the conventions used throughout the library.
 
 ## Mass parameters
 

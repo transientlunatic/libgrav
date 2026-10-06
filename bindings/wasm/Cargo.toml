@@ -1,5 +1,5 @@
 [package]
-name = "puddin-wasm"
+name = "grav-wasm"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -9,7 +9,7 @@ license.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-puddin = { workspace = true }
+grav = { workspace = true }
 uom = { workspace = true }
 wasm-bindgen = "0.2"
 
