@@ -2,7 +2,15 @@
 
 ## Unreleased
 
+### R package
+- Now self-contained: the Rust sources are vendored into `bindings/r/src/rust`
+  (`scripts/vendor_r.py`) and compiled and statically linked at install time, so
+  `R CMD build` tarballs install anywhere with a Rust toolchain (r-universe
+  ready).  `PUDDIN_LIB` still links a prebuilt shared library.
+- `puddin-julia` also builds as a `staticlib`.
+
 ### CI
+- R job builds and installs from a source tarball and checks the vendored sources are in sync.
 - R job installs testthat from the default (binary) repository and fails loudly if it is missing.
 
 ### Release pipeline

@@ -289,9 +289,9 @@ export(my_new_function)
 Test:
 
 ```bash
-cargo build --release -p puddin-julia
-PUDDIN_LIB=$(pwd)/target/release R CMD INSTALL bindings/r
+R CMD INSTALL bindings/r        # builds the vendored Rust in bindings/r/src/rust
 Rscript bindings/r/tests/testthat.R
+python3 scripts/vendor_r.py     # re-vendor if you changed the Rust sources
 ```
 
 ---

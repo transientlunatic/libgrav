@@ -1,29 +1,30 @@
 # src/Makevars
 #
-# Build configuration for the Puddin R package.
+# By default the Rust code in src/rust (vendored by scripts/vendor_r.py) is
+# compiled with cargo at install time and linked statically into Puddin.so, so
+# `R CMD INSTALL` / install.packages() need only a Rust toolchain (cargo, rustc).
 #
-# The package links against libpuddin_julia — the cdylib built by the
-# bindings/julia Rust crate.  Build it first:
-#
-#   cargo build --release -p puddin-julia
-#
-# Then install the R package from the monorepo root:
-#
-#   R CMD INSTALL bindings/r
-#
-# To override the library location (e.g. after `cargo install` or when the
-# monorepo is not at the expected relative path), set PUDDIN_LIB:
+# To link against a prebuilt shared libpuddin_julia instead (e.g. the one from a
+# release tarball or `cargo build --release -p puddin-julia`), set PUDDIN_LIB:
 #
 #   PUDDIN_LIB=/opt/puddin/lib R CMD INSTALL bindings/r
 
 ifdef PUDDIN_LIB
-  _PUDDIN_LIB := $(PUDDIN_LIB)
+  PKG_CPPFLAGS = -Irust
+  PKG_LIBS     = -L$(PUDDIN_LIB) -lpuddin_julia -Wl,-rpath,$(PUDDIN_LIB)
 else
-  # Default: monorepo layout — src/ is three levels below the repo root.
-  _PUDDIN_LIB := $(abspath ../../../target/release)
+  PKG_CPPFLAGS = -Irust
+  PKG_LIBS     = $(RUST_LIB) -lpthread -ldl -lm
+
+  RUST_TARGET_DIR = $(CURDIR)/rust/target
+  RUST_LIB        = $(RUST_TARGET_DIR)/release/libpuddin_julia.a
+
+  $(SHLIB): $(RUST_LIB)
+
+  $(RUST_LIB):
+	cargo build --release --manifest-path rust/Cargo.toml -p puddin-julia \
+	  --target-dir $(RUST_TARGET_DIR)
 endif
 
-_PUDDIN_INCLUDE := $(abspath ../../../bindings/julia/include)
-
-PKG_CPPFLAGS = -I$(_PUDDIN_INCLUDE)
-PKG_LIBS     = -L$(_PUDDIN_LIB) -lpuddin_julia -Wl,-rpath,$(_PUDDIN_LIB)
+clean:
+	rm -rf rust/target

@@ -12,7 +12,8 @@ crates/puddin/          Core Rust library (uom SI units, proptest)
 bindings/julia/         cdylib C ABI — used by Julia, C, C++, Fortran, Go, MATLAB, R
 bindings/python/        PyO3/maturin extension — excluded from Cargo workspace
 bindings/wasm/          wasm-bindgen — workspace member but requires wasm32 target
-bindings/r/             R package wrapping the C ABI via .C() shims
+bindings/r/             R package wrapping the C ABI via .C() shims; src/rust is a
+                        vendored copy of the Rust sources (generated, statically linked)
 examples/{c,cpp,fortran,go,matlab}/
 docs/                   Sphinx + sphinx-rust + furo + myst-parser + sphinxcontrib-katex
 .github/workflows/      ci.yml, release.yml, pages.yml
@@ -62,9 +63,12 @@ julia --project=. test/runtests.jl
 
 ### R
 ```bash
-cargo build --release -p puddin-julia         # shared library required
-PUDDIN_LIB=$(pwd)/target/release R CMD INSTALL bindings/r
+R CMD INSTALL bindings/r                      # compiles the vendored Rust in src/rust (needs cargo)
 cd bindings/r && Rscript tests/testthat.R
+python3 scripts/vendor_r.py                   # re-vendor after changing crates/puddin or bindings/julia
+python3 scripts/vendor_r.py --check           # CI check that src/rust is in sync
+# Optional: link a prebuilt shared lib instead of building Rust
+cargo build --release -p puddin-julia && PUDDIN_LIB=$(pwd)/target/release R CMD INSTALL bindings/r
 ```
 
 ### Releasing

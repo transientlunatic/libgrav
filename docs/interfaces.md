@@ -445,15 +445,27 @@ A reusable `binary` package is also available at `bindings/go/binary/`.
 The R package wraps the C ABI via a thin `.C()`-compatible shim compiled as
 part of the package.  All public functions are vectorised with `Vectorize()`.
 
-### Installation (development, from monorepo)
+### Installation
+
+The package is self-contained: it carries a vendored copy of the Rust sources
+(`bindings/r/src/rust`) and compiles and statically links them when installed,
+so all you need is a Rust toolchain (`cargo`, `rustc`).
 
 ```bash
-# Build the shared library first
-cargo build --release -p puddin-julia
-
-# Install the R package
-R CMD INSTALL bindings/r
+R CMD INSTALL bindings/r            # from a checkout
+# or, from a built tarball / r-universe:
+R CMD build bindings/r && R CMD INSTALL Puddin_*.tar.gz
 ```
+
+To link a prebuilt shared library instead (for example from a release archive),
+set `PUDDIN_LIB` to the directory containing `libpuddin_julia`:
+
+```bash
+PUDDIN_LIB=/opt/puddin/lib R CMD INSTALL bindings/r
+```
+
+After changing the Rust sources, refresh the vendored copy with
+`python3 scripts/vendor_r.py` (CI fails if it is out of date).
 
 ### Usage
 

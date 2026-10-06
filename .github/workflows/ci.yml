@@ -220,8 +220,8 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Build Rust shared library
-        run: cargo build --release -p puddin-julia
+      - name: Check vendored Rust sources are up to date
+        run: python3 scripts/vendor_r.py --check
 
       - uses: r-lib/actions/setup-r@v2
         with:
@@ -232,8 +232,12 @@ jobs:
         # cloud.r-project.org builds from source, which fails on R-release.
         run: Rscript -e 'install.packages("testthat"); stopifnot(requireNamespace("testthat", quietly = TRUE))'
 
-      - name: Install R package
-        run: R CMD INSTALL bindings/r
+      # Built from a source tarball, as r-universe / install.packages would:
+      # the package compiles its own vendored Rust code, no prebuilt library.
+      - name: Install R package (standalone build from tarball)
+        run: |
+          R CMD build bindings/r
+          R CMD INSTALL Puddin_*.tar.gz
 
       - name: Run tests
         run: Rscript -e 'testthat::test_dir("bindings/r/tests/testthat", reporter = "progress")'

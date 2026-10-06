@@ -12,6 +12,7 @@ Description: R interface to the Puddin library, providing fast and accurate
 License: MIT + file LICENSE
 Encoding: UTF-8
 NeedsCompilation: yes
+SystemRequirements: Cargo (Rust package manager), rustc
 Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
