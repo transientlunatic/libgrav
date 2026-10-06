@@ -166,18 +166,17 @@ jobs:
       - name: Install TypeScript compiler
         run: npm install -g typescript
 
-      - name: Copy TypeScript wrapper into pkg
-        run: |
-          cp bindings/wasm/js/libgrav.ts bindings/wasm/pkg/
-          cp bindings/wasm/js/binary.ts bindings/wasm/pkg/
+      # Compiles the wrappers with `tsc --strict` (the type-check) and adds them,
+      # plus subpath exports, to wasm-pack's generated package.json.
+      - name: Add TypeScript wrappers to the package
+        run: python3 scripts/finish_wasm_pkg.py
 
-      - name: Type-check TypeScript wrapper
-        # Use moduleResolution so the .js extension in the import is resolved.
+      - name: Check the npm tarball contains the wrappers
+        working-directory: bindings/wasm/pkg
         run: |
-          tsc --strict --noEmit --moduleResolution bundler \
-              --target ES2022 --module ESNext \
-              bindings/wasm/pkg/libgrav.ts \
-              bindings/wasm/pkg/binary.ts
+          npm pack --dry-run 2>&1 | tee pack.log
+          grep -q "libgrav.js" pack.log && grep -q "binary.js" pack.log
+          rm pack.log
 
       - name: Upload WASM package artifact
         uses: actions/upload-artifact@v4

@@ -50,9 +50,12 @@ jobs:
   #
   # We build for:
   #   Linux   x86_64  (manylinux)
-  #   Linux   aarch64 (manylinux, cross-compiled via QEMU — common on clusters)
+  #   Linux   aarch64 (manylinux, cross-compiled — common on clusters)
   #   macOS   universal2 (covers both Apple Silicon and Intel in one wheel)
   #   Windows x86_64
+  #
+  # The extension uses the stable ABI (abi3-py310), so one wheel per platform
+  # covers every Python >= 3.10 and no interpreter has to be found.
 
   build-wheels:
     name: Wheel — ${{ matrix.target }} (${{ matrix.os }})
@@ -94,11 +97,6 @@ jobs:
           target: ${{ matrix.target }}
           args: --release --out dist
           manylinux: ${{ matrix.manylinux }}
-          # QEMU is required for cross-compilation to aarch64 on ubuntu-latest
-          before-script-linux: |
-            if [ "${{ matrix.target }}" = "aarch64" ]; then
-              docker run --privileged --rm tonistiigi/binfmt --install all
-            fi
 
       - uses: actions/upload-artifact@v4
         with:
@@ -210,8 +208,14 @@ jobs:
         working-directory: bindings/wasm
         run: wasm-pack build --target bundler --out-dir pkg
 
-      - name: Copy TypeScript wrapper into pkg
-        run: cp bindings/wasm/js/libgrav.ts bindings/wasm/js/binary.ts bindings/wasm/pkg/
+      - name: Install TypeScript compiler
+        run: npm install -g typescript
+
+      # wasm-pack's package.json only lists the wasm-bindgen output; compile the
+      # TypeScript wrappers into pkg/ and add them (and subpath exports) to it.
+      - name: Add TypeScript wrappers to the package
+        run: python scripts/finish_wasm_pkg.py
+        shell: bash
 
       - uses: actions/upload-artifact@v4
         with:
@@ -281,9 +285,10 @@ jobs:
           - os: macos-latest
             lib_file: libgrav.dylib
             archive: grav-c-macos-arm64.tar.gz
-          - os: macos-13
+          - os: macos-latest
             lib_file: libgrav.dylib
             archive: grav-c-macos-x86_64.tar.gz
+            target: x86_64-apple-darwin   # cross-compiled; macos-13 runners are retired
           - os: windows-latest
             lib_file: grav.dll
             archive: grav-c-windows-x86_64.zip
@@ -300,17 +305,19 @@ jobs:
         shell: bash
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
 
       - name: Build shared library
-        run: cargo build --release -p grav-capi
+        run: cargo build --release -p grav-capi ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
 
       - name: Stage artifacts (Unix)
         if: runner.os != 'Windows'
         run: |
           mkdir dist
-          cp target/release/${{ matrix.lib_file }} dist/
+          cp target/${{ matrix.target && format('{0}/', matrix.target) || '' }}release/${{ matrix.lib_file }} dist/
           cp bindings/julia/include/grav.h dist/
           tar czf ${{ matrix.archive }} -C dist .
 
@@ -352,9 +359,10 @@ jobs:
           - os: macos-latest
             bin: grav
             archive: grav-cli-macos-arm64.tar.gz
-          - os: macos-13
+          - os: macos-latest
             bin: grav
             archive: grav-cli-macos-x86_64.tar.gz
+            target: x86_64-apple-darwin   # cross-compiled; macos-13 runners are retired
           - os: windows-latest
             bin: grav.exe
             archive: grav-cli-windows-x86_64.zip
@@ -371,17 +379,19 @@ jobs:
         shell: bash
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
 
       - name: Build CLI
-        run: cargo build --release -p grav-cli
+        run: cargo build --release -p grav-cli ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
 
       - name: Stage & archive (Unix)
         if: runner.os != 'Windows'
         run: |
           mkdir dist
-          cp target/release/${{ matrix.bin }} dist/
+          cp target/${{ matrix.target && format('{0}/', matrix.target) || '' }}release/${{ matrix.bin }} dist/
           tar czf ${{ matrix.archive }} -C dist .
 
       - name: Stage & archive (Windows)
