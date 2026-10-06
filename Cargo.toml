@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "crates/puddin",
-    "crates/puddin-cli",
+    "crates/grav",
+    "crates/grav-cli",
     # bindings/wasm and bindings/julia are standard cdylib crates that can be
     # checked on a native host without special toolchains.
     "bindings/wasm",
@@ -25,7 +25,7 @@ keywords = ["gravitational-waves", "astronomy", "physics"]
 categories = ["science"]
 
 [workspace.dependencies]
-puddin = { path = "crates/puddin" }
+grav = { path = "crates/grav" }
 uom = { version = "0.36", features = ["f64", "si"] }
 clap = { version = "4", features = ["derive"] }
 proptest = "1"
@@ -39,5 +39,5 @@ lto = true
 
 # Shrink the WASM binary: it is downloaded by end-users so size matters.
 # This is intentionally more aggressive than the workspace default above.
-[profile.release.package.puddin-wasm]
+[profile.release.package.grav-wasm]
 opt-level = "z"

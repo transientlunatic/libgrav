@@ -30,7 +30,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: cargo test
-        run: cargo test -p puddin
+        run: cargo test -p grav
 
   # ── Create the GitHub Release once; other jobs only attach assets ──────────
 
@@ -153,7 +153,7 @@ jobs:
     # (all builds must succeed before anything is published anywhere)
     environment:
       name: pypi
-      url: https://pypi.org/p/puddin
+      url: https://pypi.org/p/libgrav
     permissions:
       id-token: write  # required for OIDC trusted publishing
       contents: write  # to attach wheels/sdist to the GitHub Release
@@ -211,7 +211,7 @@ jobs:
         run: wasm-pack build --target bundler --out-dir pkg
 
       - name: Copy TypeScript wrapper into pkg
-        run: cp bindings/wasm/js/puddin.ts bindings/wasm/pkg/
+        run: cp bindings/wasm/js/libgrav.ts bindings/wasm/js/binary.ts bindings/wasm/pkg/
 
       - uses: actions/upload-artifact@v4
         with:
@@ -223,7 +223,7 @@ jobs:
   #
   # Before this will work, create a repository secret NPM_TOKEN containing
   # an npm Automation token (npmjs.com → Access Tokens → Generate).
-  # A Granular token scoped to the puddin-wasm package is recommended.
+  # A Granular token scoped to the grav-wasm package is recommended.
 
   publish-npm:
     name: Publish to npm
@@ -231,7 +231,7 @@ jobs:
     needs: [build-wheels, sdist, build-wasm, build-c-library, build-cli]
     environment:
       name: npm
-      url: https://www.npmjs.com/package/puddin-wasm
+      url: https://www.npmjs.com/package/grav-wasm
     permissions:
       contents: read
 
@@ -256,8 +256,8 @@ jobs:
   # ── Build & upload C shared library ────────────────────────────────────────
   #
   # Produces a platform-specific tarball / zip containing:
-  #   libpuddin_julia.{so,dylib,dll}  — shared library
-  #   puddin.h                         — C header
+  #   libgrav.{so,dylib,dll}  — shared library
+  #   grav.h                         — C header
   #
   # Consumers: C, C++, Fortran, Go, MATLAB, R (any language with a C FFI).
   # Extract and point your build system at the lib + header.
@@ -273,20 +273,20 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            lib_file: libpuddin_julia.so
-            archive: puddin-c-linux-x86_64.tar.gz
+            lib_file: libgrav.so
+            archive: grav-c-linux-x86_64.tar.gz
           - os: ubuntu-24.04-arm
-            lib_file: libpuddin_julia.so
-            archive: puddin-c-linux-aarch64.tar.gz
+            lib_file: libgrav.so
+            archive: grav-c-linux-aarch64.tar.gz
           - os: macos-latest
-            lib_file: libpuddin_julia.dylib
-            archive: puddin-c-macos-arm64.tar.gz
+            lib_file: libgrav.dylib
+            archive: grav-c-macos-arm64.tar.gz
           - os: macos-13
-            lib_file: libpuddin_julia.dylib
-            archive: puddin-c-macos-x86_64.tar.gz
+            lib_file: libgrav.dylib
+            archive: grav-c-macos-x86_64.tar.gz
           - os: windows-latest
-            lib_file: puddin_julia.dll
-            archive: puddin-c-windows-x86_64.zip
+            lib_file: grav.dll
+            archive: grav-c-windows-x86_64.zip
 
     steps:
       - uses: actions/checkout@v4
@@ -304,14 +304,14 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Build shared library
-        run: cargo build --release -p puddin-julia
+        run: cargo build --release -p grav-capi
 
       - name: Stage artifacts (Unix)
         if: runner.os != 'Windows'
         run: |
           mkdir dist
           cp target/release/${{ matrix.lib_file }} dist/
-          cp bindings/julia/include/puddin.h dist/
+          cp bindings/julia/include/grav.h dist/
           tar czf ${{ matrix.archive }} -C dist .
 
       - name: Stage artifacts (Windows)
@@ -320,7 +320,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Name dist | Out-Null
           Copy-Item target\release\${{ matrix.lib_file }} dist\
-          Copy-Item bindings\julia\include\puddin.h dist\
+          Copy-Item bindings\julia\include\grav.h dist\
           Compress-Archive -Path dist\* -DestinationPath ${{ matrix.archive }}
 
       - name: Upload to GitHub Release
@@ -328,9 +328,9 @@ jobs:
         with:
           files: ${{ matrix.archive }}
 
-  # ── Build & upload puddin CLI binary ────────────────────────────────────────
+  # ── Build & upload grav CLI binary ────────────────────────────────────────
   #
-  # Produces a platform-specific archive containing the `puddin` binary.
+  # Produces a platform-specific archive containing the `grav` binary.
   # Users can extract it and place it on their PATH — no Rust toolchain needed.
 
   build-cli:
@@ -344,20 +344,20 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            bin: puddin
-            archive: puddin-cli-linux-x86_64.tar.gz
+            bin: grav
+            archive: grav-cli-linux-x86_64.tar.gz
           - os: ubuntu-24.04-arm
-            bin: puddin
-            archive: puddin-cli-linux-aarch64.tar.gz
+            bin: grav
+            archive: grav-cli-linux-aarch64.tar.gz
           - os: macos-latest
-            bin: puddin
-            archive: puddin-cli-macos-arm64.tar.gz
+            bin: grav
+            archive: grav-cli-macos-arm64.tar.gz
           - os: macos-13
-            bin: puddin
-            archive: puddin-cli-macos-x86_64.tar.gz
+            bin: grav
+            archive: grav-cli-macos-x86_64.tar.gz
           - os: windows-latest
-            bin: puddin.exe
-            archive: puddin-cli-windows-x86_64.zip
+            bin: grav.exe
+            archive: grav-cli-windows-x86_64.zip
 
     steps:
       - uses: actions/checkout@v4
@@ -375,7 +375,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Build CLI
-        run: cargo build --release -p puddin-cli
+        run: cargo build --release -p grav-cli
 
       - name: Stage & archive (Unix)
         if: runner.os != 'Windows'
@@ -408,7 +408,7 @@ jobs:
     needs: [build-wheels, sdist, build-wasm, build-c-library, build-cli]
     environment:
       name: crates-io
-      url: https://crates.io/crates/puddin
+      url: https://crates.io/crates/grav
     steps:
       - uses: actions/checkout@v4
 
@@ -425,6 +425,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Publish
-        run: cargo publish -p puddin --allow-dirty  # tree is dirty: version stamped from tag
+        run: cargo publish -p grav --allow-dirty  # tree is dirty: version stamped from tag
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

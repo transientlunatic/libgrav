@@ -1,0 +1,18 @@
+[package]
+name = "grav-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+description = "Command-line interface to the Grav gravitational-wave parameter library"
+
+[[bin]]
+name = "grav"
+path = "src/main.rs"
+
+[dependencies]
+grav = { workspace = true }
+clap = { workspace = true }
+uom = { workspace = true }

@@ -1,13 +1,13 @@
-# Contributing to Puddin
+# Contributing to libgrav
 
-Puddin is a small, focused library. Contributions that add new mathematical
+libgrav is a small, focused library. Contributions that add new mathematical
 functions, fix bugs, or improve documentation are very welcome.
 
 ## Ground rules
 
 - Every new function must be **physically well-defined and dimensionally
-  correct**. Puddin uses `uom` for compile-time unit safety — lean into it.
-- **No waveforms, no detectors.** Puddin only contains parameter
+  correct**. libgrav uses `uom` for compile-time unit safety — lean into it.
+- **No waveforms, no detectors.** libgrav only contains parameter
   transformations and derived quantities. If in doubt, ask first.
 - All public API changes require a doc-test, unit tests, and property tests
   (see below).
@@ -26,8 +26,8 @@ cd puddin
 rustup show          # verify stable is active
 
 # Core library + CLI
-cargo test -p puddin
-cargo build -p puddin-cli
+cargo test -p grav
+cargo build -p grav-cli
 
 # Python bindings (separate environment)
 cd bindings/python
@@ -43,7 +43,7 @@ pytest tests/ -v
 Adding a function end-to-end touches **six layers**.  Work through them in
 order.
 
-### 1. Rust core — `crates/puddin/src/binary.rs`
+### 1. Rust core — `crates/grav/src/binary.rs`
 
 Add the function in the appropriate section (or create a new module if it
 belongs to a different physical domain).
@@ -66,7 +66,7 @@ belongs to a different physical domain).
 /// ```
 /// use uom::si::f64::Mass;
 /// use uom::si::mass::kilogram;
-/// use puddin::binary::my_new_function;
+/// use grav::binary::my_new_function;
 ///
 /// const MSUN: f64 = 1.988_416e30;
 /// let m1 = Mass::new::<kilogram>(30.0 * MSUN);
@@ -85,7 +85,7 @@ pub fn my_new_function(m1: Mass, m2: Mass) -> f64 {
 - Use `const MSUN: f64 = 1.988_416e30` (IAU 2015). Do not introduce
   `solar_mass` — it does not exist in `uom` v0.36.
 - If `m1 >= m2` is a precondition, add a `debug_assert!` with a clear message.
-- Export from `crates/puddin/src/lib.rs` if it is a new module; `binary.rs`
+- Export from `crates/grav/src/lib.rs` if it is a new module; `binary.rs`
   exports are already public via `pub mod binary`.
 
 ### 2. Tests — bottom of `binary.rs`
@@ -117,7 +117,7 @@ proptest! {
 }
 ```
 
-Run with `cargo test -p puddin`.  All 26+ tests must pass.
+Run with `cargo test -p grav`.  All 26+ tests must pass.
 
 ### 3. C ABI — `bindings/julia/src/lib.rs`
 
@@ -126,21 +126,21 @@ Add a `#[no_mangle] pub extern "C"` wrapper.  Always scalar, always SI:
 ```rust
 /// My new quantity (dimensionless).
 #[no_mangle]
-pub extern "C" fn puddin_my_new_function(m1_kg: f64, m2_kg: f64) -> f64 {
+pub extern "C" fn grav_my_new_function(m1_kg: f64, m2_kg: f64) -> f64 {
     binary::my_new_function(kg(m1_kg), kg(m2_kg))
 }
 ```
 
-Update the C header `bindings/julia/include/puddin.h`:
+Update the C header `bindings/julia/include/grav.h`:
 
 ```c
 /** My new quantity (dimensionless). */
-double puddin_my_new_function(double m1_kg, double m2_kg);
+double grav_my_new_function(double m1_kg, double m2_kg);
 ```
 
-Build and verify: `cargo build --release -p puddin-julia`.
+Build and verify: `cargo build --release -p grav-capi`.
 
-### 4. CLI — `crates/puddin-cli/src/main.rs`
+### 4. CLI — `crates/grav-cli/src/main.rs`
 
 Add a variant to the `Command` enum and a match arm in `main()`:
 
@@ -165,7 +165,7 @@ Command::MyNewFunction { m1, m2 } => {
 If the output carries mass units, pattern-match `si` and set the unit string
 to `"Msun"` or `"kg"` as appropriate (see `ChirpMass` for the pattern).
 
-Test: `cargo build -p puddin-cli && ./target/debug/puddin my-new-function 30 30`.
+Test: `cargo build -p grav-cli && ./target/debug/grav my-new-function 30 30`.
 
 ### 5. Python — `bindings/python/src/lib.rs` and `tests/`
 
@@ -190,7 +190,7 @@ fn my_new_function<'py>(
 }
 ```
 
-Register it in `_puddin`:
+Register it in `_libgrav`:
 
 ```rust
 m.add_function(wrap_pyfunction!(my_new_function, m)?)?;
@@ -201,7 +201,7 @@ Add a test in `bindings/python/tests/test_binary.py`:
 ```python
 def test_my_new_function_known_value():
     m = np.array([30.0 * MSUN])
-    result = puddin.my_new_function(m, m)
+    result = libgrav.my_new_function(m, m)
     assert abs(result[0] - EXPECTED) < 1e-10
 ```
 
@@ -213,7 +213,7 @@ maturin develop --extras dev
 pytest tests/ -v
 ```
 
-### 6. Julia — `bindings/julia/src/Puddin.jl` and `test/runtests.jl`
+### 6. Julia — `bindings/julia/src/Grav.jl` and `test/runtests.jl`
 
 Add a `ccall` wrapper:
 
@@ -224,7 +224,7 @@ Add a `ccall` wrapper:
 One-line description.
 """
 function my_new_function(m1_kg::Float64, m2_kg::Float64)::Float64
-    ccall((:puddin_my_new_function, _LIB), Float64, (Float64, Float64), m1_kg, m2_kg)
+    ccall((:grav_my_new_function, _LIB), Float64, (Float64, Float64), m1_kg, m2_kg)
 end
 ```
 
@@ -246,23 +246,23 @@ end
 
 Run: `julia --project=bindings/julia bindings/julia/test/runtests.jl`.
 
-### 7. R (if applicable) — `bindings/r/src/puddin_r.c` and `R/puddin.R`
+### 7. R (if applicable) — `bindings/r/src/grav_r.c` and `R/grav.R`
 
-Add a `.C()`-compatible shim in `puddin_r.c`:
+Add a `.C()`-compatible shim in `grav_r.c`:
 
 ```c
-void r_puddin_my_new_function(double *m1_kg, double *m2_kg, double *result) {
-    *result = puddin_my_new_function(*m1_kg, *m2_kg);
+void r_grav_my_new_function(double *m1_kg, double *m2_kg, double *result) {
+    *result = grav_my_new_function(*m1_kg, *m2_kg);
 }
 ```
 
 Register it in the `cMethods` table:
 
 ```c
-{"r_puddin_my_new_function", (DL_FUNC) &r_puddin_my_new_function, 3},
+{"r_grav_my_new_function", (DL_FUNC) &r_grav_my_new_function, 3},
 ```
 
-Add the public API in `R/puddin.R`:
+Add the public API in `R/grav.R`:
 
 ```r
 #' My new quantity
@@ -272,11 +272,11 @@ Add the public API in `R/puddin.R`:
 #' @return Result (dimensionless numeric vector)
 #' @export
 my_new_function <- Vectorize(function(m1_kg, m2_kg) {
-  .C("r_puddin_my_new_function",
+  .C("r_grav_my_new_function",
      m1_kg  = as.double(m1_kg),
      m2_kg  = as.double(m2_kg),
      result = double(1L),
-     PACKAGE = "Puddin")$result
+     PACKAGE = "libgrav")$result
 })
 ```
 
@@ -328,8 +328,8 @@ sphinx-build -n -b html docs/ docs/_build/html
 
 ## Checklist before opening a pull request
 
-- [ ] `cargo test -p puddin` — all tests pass
-- [ ] `cargo clippy -p puddin -p puddin-julia -p puddin-cli -- -D warnings` — zero warnings
+- [ ] `cargo test -p grav` — all tests pass
+- [ ] `cargo clippy -p grav -p grav-capi -p grav-cli -- -D warnings` — zero warnings
 - [ ] `cargo fmt --all --check` — no formatting changes needed
 - [ ] Python tests pass (`cd bindings/python && maturin develop && pytest`)
 - [ ] Julia tests pass

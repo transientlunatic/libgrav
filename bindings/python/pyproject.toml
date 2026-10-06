@@ -3,7 +3,7 @@ requires = ["maturin>=1.7,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "puddin"
+name = "libgrav"
 version = "0.1.0"
 description = "Mathematical and physical primitives for gravitational-wave astronomy"
 license = { text = "MIT OR Apache-2.0" }
@@ -25,5 +25,5 @@ dev = [
 
 [tool.maturin]
 python-source = "python"
-module-name = "puddin._puddin"
+module-name = "libgrav._libgrav"
 features = ["pyo3/extension-module"]

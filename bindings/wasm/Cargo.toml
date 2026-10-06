@@ -1,11 +1,11 @@
 [package]
-name = "puddin-wasm"
+name = "grav-wasm"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "WebAssembly bindings for Puddin"
+description = "WebAssembly bindings for libgrav"
 
 publish = false
 
@@ -13,7 +13,7 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-puddin = { workspace = true }
+grav = { workspace = true }
 uom = { workspace = true }
 wasm-bindgen = "0.2"
 

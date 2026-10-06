@@ -1,33 +1,33 @@
 /*
  * examples/cpp/example.cpp
  *
- * Demonstrates calling the Puddin C API from C++.
+ * Demonstrates calling the libgrav C API from C++.
  *
  * Two usage styles are shown:
- *   1. Flat API via puddin.h (original style, backward compatible)
- *   2. Namespace API via puddin/binary.hpp (domain-organised, recommended)
+ *   1. Flat API via grav.h (original style, backward compatible)
+ *   2. Namespace API via grav/binary.hpp (domain-organised, recommended)
  *
  * Build (from repo root):
- *   cargo build --release -p puddin-julia
+ *   cargo build --release -p grav-capi
  *   g++ examples/cpp/example.cpp \
  *       -I bindings/julia/include \
- *       -L target/release -lpuddin_julia \
+ *       -L target/release -lgrav \
  *       -Wl,-rpath,$(pwd)/target/release \
  *       -o examples/cpp/example
  *   ./examples/cpp/example
  *
- * puddin.h includes an `extern "C"` guard so the header is directly usable
+ * grav.h includes an `extern "C"` guard so the header is directly usable
  * from C++ without any modifications.
  */
 
 #include <cmath>
 #include <iostream>
 #include <vector>
-#include "puddin/binary.hpp"   // provides puddin::binary:: namespace
+#include "grav/binary.hpp"   // provides grav::binary:: namespace
 
 int main() {
     // ── Domain-organised API (recommended style) ──────────────────────────────
-    namespace binary = puddin::binary;
+    namespace binary = grav::binary;
 
     double m1 = 30.0 * binary::MSUN;
     double m2 = 30.0 * binary::MSUN;

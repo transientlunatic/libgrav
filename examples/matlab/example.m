@@ -1,11 +1,11 @@
 % examples/matlab/example.m
 %
-% Demonstrates calling the Puddin C API from MATLAB, using a domain-organised
-% binary struct that mirrors puddin.binary in Python and Puddin.Binary in Julia.
+% Demonstrates calling the libgrav C API from MATLAB, using a domain-organised
+% binary struct that mirrors libgrav.binary in Python and Grav.Binary in Julia.
 %
 % Prerequisites:
 %   1. Build the shared library from the repo root:
-%        cargo build --release -p puddin-julia
+%        cargo build --release -p grav-capi
 %   2. Run this script from the repo root, or update REPO_ROOT below.
 %
 % MATLAB version: R2019b or newer (calllib with pointer aliasing).
@@ -13,39 +13,39 @@
 % ── locate the library and header ────────────────────────────────────────────
 repo_root   = fileparts(fileparts(fileparts(mfilename('fullpath'))));
 lib_dir     = fullfile(repo_root, 'target', 'release');
-header_file = fullfile(repo_root, 'bindings', 'julia', 'include', 'puddin.h');
+header_file = fullfile(repo_root, 'bindings', 'julia', 'include', 'grav.h');
 
 if ispc
-    lib_file = fullfile(lib_dir, 'puddin_julia.dll');
+    lib_file = fullfile(lib_dir, 'grav.dll');
 elseif ismac
-    lib_file = fullfile(lib_dir, 'libpuddin_julia.dylib');
+    lib_file = fullfile(lib_dir, 'libgrav.dylib');
 else
-    lib_file = fullfile(lib_dir, 'libpuddin_julia.so');
+    lib_file = fullfile(lib_dir, 'libgrav.so');
 end
 
-if ~libisloaded('puddin')
-    loadlibrary(lib_file, header_file, 'alias', 'puddin');
+if ~libisloaded('grav')
+    loadlibrary(lib_file, header_file, 'alias', 'grav');
 end
 
 % ── domain-organised binary struct ───────────────────────────────────────────
 %
 % Wraps all compact binary parameter functions in a struct so they can be
-% accessed as binary.chirp_mass(m1, m2), mirroring puddin.binary in Python
-% and Puddin.Binary in Julia.
+% accessed as binary.chirp_mass(m1, m2), mirroring libgrav.binary in Python
+% and Grav.Binary in Julia.
 
 MSUN = 1.988416e30;
 
 binary.MSUN = MSUN;
-binary.total_mass           = @(m1,m2) calllib('puddin','puddin_total_mass',m1,m2);
-binary.mass_ratio           = @(m1,m2) calllib('puddin','puddin_mass_ratio',m1,m2);
-binary.symmetric_mass_ratio = @(m1,m2) calllib('puddin','puddin_symmetric_mass_ratio',m1,m2);
-binary.chirp_mass           = @(m1,m2) calllib('puddin','puddin_chirp_mass',m1,m2);
-binary.m1_from_chirp_mass_q = @(mc,q)  calllib('puddin','puddin_m1_from_mc_q',mc,q);
-binary.m2_from_chirp_mass_q = @(mc,q)  calllib('puddin','puddin_m2_from_mc_q',mc,q);
-binary.m1_from_chirp_mass_eta = @(mc,eta) calllib('puddin','puddin_m1_from_mc_eta',mc,eta);
-binary.m2_from_chirp_mass_eta = @(mc,eta) calllib('puddin','puddin_m2_from_mc_eta',mc,eta);
-binary.chi_eff = @(m1,m2,a1,a2,t1,t2) calllib('puddin','puddin_chi_eff',m1,m2,a1,a2,t1,t2);
-binary.chi_p   = @(m1,m2,a1,a2,t1,t2) calllib('puddin','puddin_chi_p',  m1,m2,a1,a2,t1,t2);
+binary.total_mass           = @(m1,m2) calllib('grav','grav_total_mass',m1,m2);
+binary.mass_ratio           = @(m1,m2) calllib('grav','grav_mass_ratio',m1,m2);
+binary.symmetric_mass_ratio = @(m1,m2) calllib('grav','grav_symmetric_mass_ratio',m1,m2);
+binary.chirp_mass           = @(m1,m2) calllib('grav','grav_chirp_mass',m1,m2);
+binary.m1_from_chirp_mass_q = @(mc,q)  calllib('grav','grav_m1_from_mc_q',mc,q);
+binary.m2_from_chirp_mass_q = @(mc,q)  calllib('grav','grav_m2_from_mc_q',mc,q);
+binary.m1_from_chirp_mass_eta = @(mc,eta) calllib('grav','grav_m1_from_mc_eta',mc,eta);
+binary.m2_from_chirp_mass_eta = @(mc,eta) calllib('grav','grav_m2_from_mc_eta',mc,eta);
+binary.chi_eff = @(m1,m2,a1,a2,t1,t2) calllib('grav','grav_chi_eff',m1,m2,a1,a2,t1,t2);
+binary.chi_p   = @(m1,m2,a1,a2,t1,t2) calllib('grav','grav_chi_p',  m1,m2,a1,a2,t1,t2);
 
 % ── use the binary struct ─────────────────────────────────────────────────────
 m1 = 30.0 * MSUN;
@@ -81,4 +81,4 @@ fprintf('\n=== Chirp masses for equal-mass binaries ===\n');
 fprintf('  m1=m2 (Msun)  Mc (Msun)\n');
 fprintf('  %10.1f  %9.4f\n', [masses_sun; mc_sun]);
 
-unloadlibrary('puddin');
+unloadlibrary('grav');

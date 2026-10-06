@@ -1,19 +1,19 @@
 [package]
-name = "puddin-python"
+name = "libgrav-python"
 version = "0.1.0"
 edition = "2021"
 authors = ["Daniel Williams"]
 repository = "https://github.com/transientlunatic/puddin"
-description = "Python bindings for Puddin"
+description = "Python bindings for libgrav"
 publish = false
 license = "MIT OR Apache-2.0"
 
 [lib]
-name = "puddin"
+name = "libgrav"
 crate-type = ["cdylib"]
 
 [dependencies]
-puddin = { path = "../../crates/puddin" }
+grav = { path = "../../crates/grav" }
 pyo3 = { version = "0.23", features = ["extension-module"] }
 numpy = "0.23"
 uom = { version = "0.36", features = ["f64", "si"] }

@@ -17,3 +17,4 @@ dist/
 
 # Go module cache
 root/
+*.o

@@ -1,19 +1,20 @@
 [package]
-name = "puddin-julia"
+name = "grav-capi"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "C ABI shared library for Puddin (used by Julia, C, C++, Fortran, Go, MATLAB, R)"
+description = "C ABI shared library for libgrav (used by Julia, C, C++, Fortran, Go, MATLAB, R)"
 
 publish = false
 
 [lib]
-# cdylib produces libpuddin_julia.so / .dylib / .dll; staticlib produces
-# libpuddin_julia.a, which the R package links statically
+# cdylib produces libgrav.so / .dylib / .dll; staticlib produces libgrav.a,
+# which the R package links statically
+name = "grav"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-puddin = { workspace = true }
+grav = { workspace = true }
 uom = { workspace = true }
