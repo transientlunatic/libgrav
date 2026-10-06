@@ -1,4 +1,4 @@
-"""Python-level tests for the puddin binary parameter functions.
+"""Python-level tests for the libgrav binary parameter functions.
 
 Run with: pytest bindings/python/tests/
 
@@ -17,7 +17,7 @@ import math
 import pytest
 import numpy as np
 
-import puddin
+import libgrav
 from conftest import MSUN_KG, sol
 
 
@@ -25,66 +25,66 @@ from conftest import MSUN_KG, sol
 
 class TestPlainSI:
     def test_total_mass(self):
-        result = puddin.total_mass(sol(30), sol(20))
+        result = libgrav.total_mass(sol(30), sol(20))
         assert math.isclose(result[0] / MSUN_KG, 50.0, rel_tol=1e-8)
 
     def test_mass_ratio(self):
-        result = puddin.mass_ratio(sol(30), sol(15))
+        result = libgrav.mass_ratio(sol(30), sol(15))
         assert math.isclose(result[0], 0.5, rel_tol=1e-8)
 
     def test_symmetric_mass_ratio_equal(self):
-        result = puddin.symmetric_mass_ratio(sol(30), sol(30))
+        result = libgrav.symmetric_mass_ratio(sol(30), sol(30))
         assert math.isclose(result[0], 0.25, rel_tol=1e-8)
 
     def test_symmetric_mass_ratio_upper_bound(self):
         for m1, m2 in [(10, 5), (100, 1), (50, 50)]:
-            eta = puddin.symmetric_mass_ratio(sol(m1), sol(m2))[0]
+            eta = libgrav.symmetric_mass_ratio(sol(m1), sol(m2))[0]
             assert eta <= 0.25 + 1e-10
 
     def test_chirp_mass_equal_masses(self):
-        mc = puddin.chirp_mass(sol(30), sol(30))[0] / MSUN_KG
+        mc = libgrav.chirp_mass(sol(30), sol(30))[0] / MSUN_KG
         expected = 60.0 * 0.25 ** (3.0 / 5.0)
         assert math.isclose(mc, expected, rel_tol=1e-8)
 
     def test_chirp_mass_le_total(self):
         for m1, m2 in [(30, 30), (30, 10), (100, 1)]:
-            mc = puddin.chirp_mass(sol(m1), sol(m2))[0]
-            mt = puddin.total_mass(sol(m1), sol(m2))[0]
+            mc = libgrav.chirp_mass(sol(m1), sol(m2))[0]
+            mt = libgrav.total_mass(sol(m1), sol(m2))[0]
             assert mc <= mt + 1e-6
 
     def test_masses_from_chirp_mass_q_roundtrip(self):
-        mc = puddin.chirp_mass(sol(30), sol(20))
-        q = puddin.mass_ratio(sol(30), sol(20))
-        (m1, m2) = puddin.masses_from_chirp_mass_q(mc, q)
+        mc = libgrav.chirp_mass(sol(30), sol(20))
+        q = libgrav.mass_ratio(sol(30), sol(20))
+        (m1, m2) = libgrav.masses_from_chirp_mass_q(mc, q)
         assert math.isclose(m1[0] / MSUN_KG, 30.0, rel_tol=1e-8)
         assert math.isclose(m2[0] / MSUN_KG, 20.0, rel_tol=1e-8)
 
     def test_masses_from_chirp_mass_q_equal(self):
-        mc = puddin.chirp_mass(sol(30), sol(30))
-        (m1, m2) = puddin.masses_from_chirp_mass_q(mc, np.array([1.0]))
+        mc = libgrav.chirp_mass(sol(30), sol(30))
+        (m1, m2) = libgrav.masses_from_chirp_mass_q(mc, np.array([1.0]))
         assert math.isclose(m1[0] / MSUN_KG, 30.0, rel_tol=1e-8)
         assert math.isclose(m2[0] / MSUN_KG, 30.0, rel_tol=1e-8)
 
     def test_masses_from_chirp_mass_eta_roundtrip(self):
-        mc = puddin.chirp_mass(sol(30), sol(20))
-        eta = puddin.symmetric_mass_ratio(sol(30), sol(20))
-        (m1, m2) = puddin.masses_from_chirp_mass_eta(mc, eta)
+        mc = libgrav.chirp_mass(sol(30), sol(20))
+        eta = libgrav.symmetric_mass_ratio(sol(30), sol(20))
+        (m1, m2) = libgrav.masses_from_chirp_mass_eta(mc, eta)
         assert math.isclose(m1[0] / MSUN_KG, 30.0, rel_tol=1e-8)
         assert math.isclose(m2[0] / MSUN_KG, 20.0, rel_tol=1e-8)
 
     def test_masses_from_chirp_mass_eta_equal(self):
-        mc = puddin.chirp_mass(sol(30), sol(30))
-        (m1, m2) = puddin.masses_from_chirp_mass_eta(mc, np.array([0.25]))
+        mc = libgrav.chirp_mass(sol(30), sol(30))
+        (m1, m2) = libgrav.masses_from_chirp_mass_eta(mc, np.array([0.25]))
         assert math.isclose(m1[0] / MSUN_KG, 30.0, rel_tol=1e-8)
         assert math.isclose(m2[0] / MSUN_KG, 30.0, rel_tol=1e-8)
 
     def test_chi_eff_aligned(self):
-        x = puddin.chi_eff(sol(30), sol(30), np.array([0.5]), np.array([0.5]),
+        x = libgrav.chi_eff(sol(30), sol(30), np.array([0.5]), np.array([0.5]),
                            np.array([0.0]), np.array([0.0]))[0]
         assert math.isclose(x, 0.5, rel_tol=1e-8)
 
     def test_chi_p_in_plane(self):
-        x = puddin.chi_p(sol(30), sol(30), np.array([1.0]), np.array([0.0]),
+        x = libgrav.chi_p(sol(30), sol(30), np.array([1.0]), np.array([0.0]),
                          np.array([math.pi / 2]), np.array([0.0]))[0]
         assert math.isclose(x, 1.0, rel_tol=1e-8)
 
@@ -96,7 +96,7 @@ class TestAstropy:
 
     def test_chirp_mass_with_astropy_units(self):
         from astropy import units as u
-        mc_kg = puddin.chirp_mass(30 * u.Msun, 30 * u.Msun)[0]
+        mc_kg = libgrav.chirp_mass(30 * u.Msun, 30 * u.Msun)[0]
         msun_kg = (1 * u.Msun).to('kg').value
         mc_msun = mc_kg / msun_kg
         expected = 60.0 * 0.25 ** (3.0 / 5.0)
@@ -105,7 +105,7 @@ class TestAstropy:
     def test_wrong_unit_raises(self):
         from astropy import units as u
         with pytest.raises(Exception):  # astropy raises UnitConversionError
-            puddin.chirp_mass(30 * u.meter, 30 * u.meter)
+            libgrav.chirp_mass(30 * u.meter, 30 * u.meter)
 
 
 # ── pint tests ────────────────────────────────────────────────────────────────
@@ -118,7 +118,7 @@ class TestPint:
         ureg = pint.UnitRegistry()
         m1 = 30 * MSUN_KG * ureg.kg
         m2 = 30 * MSUN_KG * ureg.kg
-        mc = puddin.chirp_mass(m1, m2)[0] / MSUN_KG
+        mc = libgrav.chirp_mass(m1, m2)[0] / MSUN_KG
         expected = 60.0 * 0.25 ** (3.0 / 5.0)
         assert math.isclose(mc, expected, rel_tol=1e-4)
 
@@ -126,7 +126,7 @@ class TestPint:
         import pint
         ureg = pint.UnitRegistry()
         with pytest.raises(Exception):
-            puddin.chirp_mass(30 * ureg.meter, 30 * ureg.meter)
+            libgrav.chirp_mass(30 * ureg.meter, 30 * ureg.meter)
 
 
 # ── JAX tests ─────────────────────────────────────────────────────────────────
@@ -140,7 +140,7 @@ class TestJAX:
 
         m1 = jnp.array([30.0 * MSUN_KG])
         m2 = jnp.array([30.0 * MSUN_KG])
-        mc_fn = jax.jit(puddin.chirp_mass)
+        mc_fn = jax.jit(libgrav.chirp_mass)
         mc = mc_fn(m1, m2)[0] / MSUN_KG
         expected = 60.0 * 0.25 ** (3.0 / 5.0)
         assert math.isclose(float(mc), expected, rel_tol=1e-4)
@@ -153,11 +153,11 @@ class TestJAX:
         m2 = jnp.array([30.0 * MSUN_KG])
 
         def scalar_mc(m1, m2):
-            return puddin.chirp_mass(m1, m2)[0]
+            return libgrav.chirp_mass(m1, m2)[0]
 
         grad = jax.grad(scalar_mc)(m1, m2)
         # dMc/dm1 at equal masses = Mc * (3/(5*m1) - 1/(5*M))
         # = Mc * (3/5 - 1/10) / m1 = Mc * 1/2 / m1
-        mc = puddin.chirp_mass(m1, m2)[0]
+        mc = libgrav.chirp_mass(m1, m2)[0]
         expected_grad = mc * (3.0 / (5.0 * m1[0]) - 1.0 / (5.0 * 2.0 * m1[0]))
         assert math.isclose(float(grad[0]), float(expected_grad), rel_tol=1e-5)

@@ -1,17 +1,17 @@
 [package]
-name = "puddin-cli"
+name = "grav-cli"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Command-line interface to the Puddin gravitational-wave parameter library"
+description = "Command-line interface to the Grav gravitational-wave parameter library"
 
 [[bin]]
-name = "puddin"
+name = "grav"
 path = "src/main.rs"
 
 [dependencies]
-puddin = { workspace = true }
+grav = { workspace = true }
 clap = { workspace = true }
 uom = { workspace = true }

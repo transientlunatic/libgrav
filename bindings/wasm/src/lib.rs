@@ -1,6 +1,6 @@
-//! WebAssembly bindings for Puddin.
+//! WebAssembly bindings for Grav.
 //!
-//! This module exposes the core Puddin functions to JavaScript and TypeScript
+//! This module exposes the core Grav functions to JavaScript and TypeScript
 //! via `wasm-bindgen`.  All functions accept and return `Float64Array`s in SI
 //! units (kg for mass, radians for angles, dimensionless otherwise).
 //!
@@ -12,7 +12,7 @@
 //! The output package in `bindings/wasm/pkg/` includes TypeScript declaration
 //! files (`.d.ts`) generated automatically by `wasm-bindgen`.
 
-use puddin::binary;
+use grav::binary;
 use uom::si::f64::Mass;
 use uom::si::mass::kilogram;
 use wasm_bindgen::prelude::*;
@@ -206,3 +206,129 @@ pub fn chi_p(
         .map(|i| binary::chi_p(masses1[i], masses2[i], a1[i], a2[i], tilt1[i], tilt2[i]))
         .collect()
 }
+
+// ── spin components ──────────────────────────────────────────────────────────
+//
+// One function per output component, matching the split-return convention
+// used above for `masses_from_chirp_mass_q_m1` / `_m2`.
+
+macro_rules! spin_components_component {
+    ($name:ident, $doc:literal, $index:tt) => {
+        #[doc = $doc]
+        ///
+        /// @param a1    - Dimensionless spin magnitude of body 1 (0–1).
+        /// @param a2    - Dimensionless spin magnitude of body 2 (0–1).
+        /// @param tilt1 - Spin tilt angle of body 1 (radians, 0–π).
+        /// @param tilt2 - Spin tilt angle of body 2 (radians, 0–π).
+        /// @param phi12 - Azimuthal angle of spin 2 relative to spin 1 (radians).
+        #[wasm_bindgen]
+        pub fn $name(
+            a1: Vec<f64>,
+            a2: Vec<f64>,
+            tilt1: Vec<f64>,
+            tilt2: Vec<f64>,
+            phi12: Vec<f64>,
+        ) -> Vec<f64> {
+            let n = a1.len();
+            (0..n)
+                .map(|i| binary::spin_components(a1[i], a2[i], tilt1[i], tilt2[i], phi12[i]).$index)
+                .collect()
+        }
+    };
+}
+
+spin_components_component!(spin_components_s1x, "Cartesian spin component S1x (L-frame, dimensionless).", 0);
+spin_components_component!(spin_components_s1y, "Cartesian spin component S1y (L-frame, dimensionless).", 1);
+spin_components_component!(spin_components_s1z, "Cartesian spin component S1z (L-frame, dimensionless).", 2);
+spin_components_component!(spin_components_s2x, "Cartesian spin component S2x (L-frame, dimensionless).", 3);
+spin_components_component!(spin_components_s2y, "Cartesian spin component S2y (L-frame, dimensionless).", 4);
+spin_components_component!(spin_components_s2z, "Cartesian spin component S2z (L-frame, dimensionless).", 5);
+
+// ── orbital angular momentum ─────────────────────────────────────────────────
+
+/// Newtonian orbital angular momentum magnitude $|L_N|$ (kg m² s⁻¹).
+///
+/// @param m1    - Component mass 1 in kilograms.
+/// @param m2    - Component mass 2 in kilograms.
+/// @param f_ref - Reference GW frequency in Hz.
+/// @returns |L_N| in kg m² s⁻¹.
+#[wasm_bindgen]
+pub fn orbital_angular_momentum(m1: Vec<f64>, m2: Vec<f64>, f_ref: Vec<f64>) -> Vec<f64> {
+    let masses1 = to_masses(&m1);
+    let masses2 = to_masses(&m2);
+    masses1
+        .into_iter()
+        .zip(masses2)
+        .zip(f_ref.iter())
+        .map(|((a, b), &f)| binary::orbital_angular_momentum(a, b, f))
+        .collect()
+}
+
+// ── precessing spin frame transform ──────────────────────────────────────────
+//
+// A from-scratch reimplementation of LALSimulation's
+// SimInspiralTransformPrecessingNewInitialConditions (no LALSuite
+// dependency); matches its output to within floating-point precision.
+
+macro_rules! transform_precessing_spins_component {
+    ($name:ident, $doc:literal, $index:tt) => {
+        #[doc = $doc]
+        ///
+        /// @param theta_jn - Inclination of J relative to the line of sight (radians).
+        /// @param phi_jl   - Azimuth of L_N about J (radians).
+        /// @param tilt1    - Spin tilt angle of body 1 from L_N (radians, 0–π).
+        /// @param tilt2    - Spin tilt angle of body 2 from L_N (radians, 0–π).
+        /// @param phi12    - Azimuthal angle of spin 2 relative to spin 1 (radians).
+        /// @param a1       - Dimensionless spin magnitude of body 1 (0–1).
+        /// @param a2       - Dimensionless spin magnitude of body 2 (0–1).
+        /// @param m1       - Component mass 1 in kilograms.
+        /// @param m2       - Component mass 2 in kilograms.
+        /// @param f_ref    - Reference GW frequency in Hz (nonzero).
+        /// @param phase    - Reference orbital phase (radians).
+        #[wasm_bindgen]
+        #[allow(clippy::too_many_arguments)]
+        pub fn $name(
+            theta_jn: Vec<f64>,
+            phi_jl: Vec<f64>,
+            tilt1: Vec<f64>,
+            tilt2: Vec<f64>,
+            phi12: Vec<f64>,
+            a1: Vec<f64>,
+            a2: Vec<f64>,
+            m1: Vec<f64>,
+            m2: Vec<f64>,
+            f_ref: Vec<f64>,
+            phase: Vec<f64>,
+        ) -> Vec<f64> {
+            let n = theta_jn.len();
+            let masses1 = to_masses(&m1);
+            let masses2 = to_masses(&m2);
+            (0..n)
+                .map(|i| {
+                    binary::transform_precessing_spins(
+                        theta_jn[i],
+                        phi_jl[i],
+                        tilt1[i],
+                        tilt2[i],
+                        phi12[i],
+                        a1[i],
+                        a2[i],
+                        masses1[i],
+                        masses2[i],
+                        f_ref[i],
+                        phase[i],
+                    )
+                    .$index
+                })
+                .collect()
+        }
+    };
+}
+
+transform_precessing_spins_component!(transform_precessing_spins_iota, "Inclination of L_N relative to the line of sight, after the J→L rotation (radians).", 0);
+transform_precessing_spins_component!(transform_precessing_spins_s1x, "Cartesian spin component S1x after the precessing-spin frame transform.", 1);
+transform_precessing_spins_component!(transform_precessing_spins_s1y, "Cartesian spin component S1y after the precessing-spin frame transform.", 2);
+transform_precessing_spins_component!(transform_precessing_spins_s1z, "Cartesian spin component S1z after the precessing-spin frame transform.", 3);
+transform_precessing_spins_component!(transform_precessing_spins_s2x, "Cartesian spin component S2x after the precessing-spin frame transform.", 4);
+transform_precessing_spins_component!(transform_precessing_spins_s2y, "Cartesian spin component S2y after the precessing-spin frame transform.", 5);
+transform_precessing_spins_component!(transform_precessing_spins_s2z, "Cartesian spin component S2z after the precessing-spin frame transform.", 6);

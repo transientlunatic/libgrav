@@ -1,14 +1,15 @@
 [package]
-name = "puddin-julia"
+name = "grav-capi"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
 [lib]
-# cdylib produces libpuddin_julia.so / .dylib / .dll
+# cdylib produces libgrav.so / .dylib / .dll
+name = "grav"
 crate-type = ["cdylib"]
 
 [dependencies]
-puddin = { workspace = true }
+grav = { workspace = true }
 uom = { workspace = true }

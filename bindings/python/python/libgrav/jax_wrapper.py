@@ -1,4 +1,4 @@
-"""JAX wrappers for puddin Rust functions.
+"""JAX wrappers for libgrav Rust functions.
 
 Each Rust function is wrapped with :func:`jax.pure_callback` so that it can
 participate in JIT-compiled JAX programs.  Analytical VJP (reverse-mode
@@ -16,7 +16,7 @@ import jax
 import jax.numpy as jnp
 from jax import pure_callback
 
-from puddin import _puddin  # the compiled Rust extension
+from libgrav import _libgrav  # the compiled Rust extension
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -38,7 +38,7 @@ def _np(fn):
 def total_mass(m1: jax.Array, m2: jax.Array) -> jax.Array:
     """Total mass M = m1 + m2 (kg)."""
     return pure_callback(
-        _np(_puddin.total_mass), _result_shape(m1), m1, m2, vmap_method="sequential"
+        _np(_libgrav.total_mass), _result_shape(m1), m1, m2, vmap_method="sequential"
     )
 
 
@@ -59,7 +59,7 @@ total_mass.defvjp(_total_mass_fwd, _total_mass_bwd)
 def mass_ratio(m1: jax.Array, m2: jax.Array) -> jax.Array:
     """Mass ratio q = m2 / m1."""
     return pure_callback(
-        _np(_puddin.mass_ratio), _result_shape(m1), m1, m2, vmap_method="sequential"
+        _np(_libgrav.mass_ratio), _result_shape(m1), m1, m2, vmap_method="sequential"
     )
 
 
@@ -81,7 +81,7 @@ mass_ratio.defvjp(_mass_ratio_fwd, _mass_ratio_bwd)
 def symmetric_mass_ratio(m1: jax.Array, m2: jax.Array) -> jax.Array:
     """Symmetric mass ratio η = m1*m2 / (m1+m2)^2."""
     return pure_callback(
-        _np(_puddin.symmetric_mass_ratio), _result_shape(m1), m1, m2, vmap_method="sequential"
+        _np(_libgrav.symmetric_mass_ratio), _result_shape(m1), m1, m2, vmap_method="sequential"
     )
 
 
@@ -107,7 +107,7 @@ symmetric_mass_ratio.defvjp(_eta_fwd, _eta_bwd)
 def chirp_mass(m1: jax.Array, m2: jax.Array) -> jax.Array:
     """Chirp mass Mc = (m1*m2)^(3/5) / M^(1/5) (kg)."""
     return pure_callback(
-        _np(_puddin.chirp_mass), _result_shape(m1), m1, m2, vmap_method="sequential"
+        _np(_libgrav.chirp_mass), _result_shape(m1), m1, m2, vmap_method="sequential"
     )
 
 
@@ -140,7 +140,7 @@ def chi_eff(
 ) -> jax.Array:
     """Effective inspiral spin χ_eff."""
     return pure_callback(
-        _np(_puddin.chi_eff),
+        _np(_libgrav.chi_eff),
         _result_shape(m1),
         m1, m2, a1, a2, tilt1, tilt2,
         vmap_method="sequential",
@@ -180,7 +180,7 @@ def chi_p(
 ) -> jax.Array:
     """Effective precession spin χ_p."""
     return pure_callback(
-        _np(_puddin.chi_p),
+        _np(_libgrav.chi_p),
         _result_shape(m1),
         m1, m2, a1, a2, tilt1, tilt2,
         vmap_method="sequential",
@@ -236,7 +236,7 @@ def _mc_q_result_shapes(mc, q):
 def masses_from_chirp_mass_q(mc: jax.Array, q: jax.Array):
     """Component masses (m1, m2) from chirp mass Mc and mass ratio q."""
     return pure_callback(
-        _np(_puddin.masses_from_chirp_mass_q),
+        _np(_libgrav.masses_from_chirp_mass_q),
         _mc_q_result_shapes(mc, q),
         mc, q,
         vmap_method="sequential",
@@ -277,7 +277,7 @@ def _mc_eta_result_shapes(mc, eta):
 def masses_from_chirp_mass_eta(mc: jax.Array, eta: jax.Array):
     """Component masses (m1, m2) from chirp mass Mc and symmetric mass ratio eta."""
     return pure_callback(
-        _np(_puddin.masses_from_chirp_mass_eta),
+        _np(_libgrav.masses_from_chirp_mass_eta),
         _mc_eta_result_shapes(mc, eta),
         mc, eta,
         vmap_method="sequential",
@@ -329,7 +329,7 @@ def spin_components(
     S2 = a2*(sin t2 cos phi12, sin t2 sin phi12, cos t2)
     """
     return pure_callback(
-        _np(_puddin.spin_components),
+        _np(_libgrav.spin_components),
         _spin_components_result_shapes(a1, a2, tilt1, tilt2, phi12),
         a1, a2, tilt1, tilt2, phi12,
         vmap_method="sequential",
@@ -366,7 +366,7 @@ spin_components.defvjp(_spin_components_fwd, _spin_components_bwd)
 def orbital_angular_momentum(m1: jax.Array, m2: jax.Array, f_ref: jax.Array):
     r"""Newtonian orbital angular momentum |L_N| = μ (G M)^{2/3} / (π f)^{1/3} (kg m² s⁻¹)."""
     return pure_callback(
-        _np(_puddin.orbital_angular_momentum),
+        _np(_libgrav.orbital_angular_momentum),
         _result_shape(m1),
         m1, m2, f_ref,
         vmap_method="sequential",
@@ -392,3 +392,107 @@ def _oam_bwd(res, g):
 
 
 orbital_angular_momentum.defvjp(_oam_fwd, _oam_bwd)
+
+# ── transform_precessing_spins ──────────────────────────────────────────────
+
+# Solar mass/time constants matching LALSuite's LAL_MSUN_SI / LAL_MTSUN_SI —
+# see grav::binary::transform_precessing_spins in the Rust core, which
+# this mirrors op-for-op.
+_LAL_MSUN_SI = 1.988_409_870_698_050_731_911_960_804_878_414_216e30
+_LAL_MTSUN_SI = 4.925_490_947_641_266_978_197_229_498_498_379_006e-6
+
+
+def _rotate_z(angle, x, y):
+    c, s = jnp.cos(angle), jnp.sin(angle)
+    return x * c - y * s, x * s + y * c
+
+
+def _rotate_y(angle, x, z):
+    c, s = jnp.cos(angle), jnp.sin(angle)
+    return x * c + z * s, -x * s + z * c
+
+
+def transform_precessing_spins(
+    theta_jn: jax.Array,
+    phi_jl: jax.Array,
+    tilt1: jax.Array,
+    tilt2: jax.Array,
+    phi12: jax.Array,
+    a1: jax.Array,
+    a2: jax.Array,
+    m1: jax.Array,
+    m2: jax.Array,
+    f_ref: jax.Array,
+    phase: jax.Array,
+):
+    r"""Precessing-spin frame transform (iota, S1, S2), built from plain
+    ``jax.numpy`` ops.  Unlike the other functions in this module, this does
+    not wrap the Rust kernel via ``pure_callback`` / ``custom_vjp`` — it is a
+    direct JAX port of ``grav::binary::transform_precessing_spins``, so
+    JAX differentiates through it automatically.
+    """
+    m1_msun = m1 / _LAL_MSUN_SI
+    m2_msun = m2 / _LAL_MSUN_SI
+    m_total = m1_msun + m2_msun
+    eta = m1_msun * m2_msun / (m_total * m_total)
+    v0 = jnp.cbrt(m_total * _LAL_MTSUN_SI * jnp.pi * f_ref)
+
+    # |L_N|, with its 1PN point-particle correction only (no spin-orbit term).
+    l_2pn = 1.5 + eta / 6.0
+    l_mag = m_total * m_total * eta / v0 * (1.0 + v0 * v0 * l_2pn)
+
+    lnx, lny, lnz = jnp.zeros_like(theta_jn), jnp.zeros_like(theta_jn), jnp.ones_like(theta_jn)
+    s1x = jnp.sin(tilt1) * jnp.cos(phase)
+    s1y = jnp.sin(tilt1) * jnp.sin(phase)
+    s1z = jnp.cos(tilt1)
+    s2x = jnp.sin(tilt2) * jnp.cos(phi12 + phase)
+    s2y = jnp.sin(tilt2) * jnp.sin(phi12 + phase)
+    s2z = jnp.cos(tilt2)
+
+    # Mass²-weighted spins to find J's direction (physical angular momentum).
+    jx = m1_msun * m1_msun * a1 * s1x + m2_msun * m2_msun * a2 * s2x
+    jy = m1_msun * m1_msun * a1 * s1y + m2_msun * m2_msun * a2 * s2y
+    jz = l_mag + m1_msun * m1_msun * a1 * s1z + m2_msun * m2_msun * a2 * s2z
+    j_norm = jnp.sqrt(jx * jx + jy * jy + jz * jz)
+    theta0 = jnp.arccos(jz / j_norm)
+    phi0 = jnp.arctan2(jy, jx)
+
+    # Rotation 1: about z by -phi0 (LNhat, fixed along z, is unaffected).
+    s1x, s1y = _rotate_z(-phi0, s1x, s1y)
+    s2x, s2y = _rotate_z(-phi0, s2x, s2y)
+
+    # Rotation 2: about y by -theta0, bringing Jhat onto z.
+    lnx, lnz = _rotate_y(-theta0, lnx, lnz)
+    s1x, s1z = _rotate_y(-theta0, s1x, s1z)
+    s2x, s2z = _rotate_y(-theta0, s2x, s2z)
+
+    # Rotation 3: about z by (phi_jl - pi).
+    angle3 = phi_jl - jnp.pi
+    lnx, lny = _rotate_z(angle3, lnx, lny)
+    s1x, s1y = _rotate_z(angle3, s1x, s1y)
+    s2x, s2y = _rotate_z(angle3, s2x, s2y)
+
+    # Observer direction N in the J-aligned frame; iota is the angle between
+    # L_N (as rotated so far) and N.
+    nx, ny, nz = jnp.zeros_like(theta_jn), jnp.sin(theta_jn), jnp.cos(theta_jn)
+    iota = jnp.arccos(nx * lnx + ny * lny + nz * lnz)
+
+    # Rotations 4-5: bring L_N onto z to read off spin components there.
+    theta_lj = jnp.arccos(lnz)
+    phi_l = jnp.arctan2(lny, lnx)
+
+    s1x, s1y = _rotate_z(-phi_l, s1x, s1y)
+    s2x, s2y = _rotate_z(-phi_l, s2x, s2y)
+    nx, ny = _rotate_z(-phi_l, nx, ny)
+
+    s1x, s1z = _rotate_y(-theta_lj, s1x, s1z)
+    s2x, s2z = _rotate_y(-theta_lj, s2x, s2z)
+    nx, _ = _rotate_y(-theta_lj, nx, nz)
+
+    # Rotation 6: align azimuth to the requested reference phase.
+    phi_n = jnp.arctan2(ny, nx)
+    angle6 = jnp.pi / 2.0 - phi_n - phase
+    s1x, s1y = _rotate_z(angle6, s1x, s1y)
+    s2x, s2y = _rotate_z(angle6, s2x, s2y)
+
+    return iota, a1 * s1x, a1 * s1y, a1 * s1z, a2 * s2x, a2 * s2y, a2 * s2z

@@ -1,4 +1,4 @@
-"""Shared test fixtures for the puddin Python binding tests."""
+"""Shared test fixtures for the libgrav Python binding tests."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-useDynLib(Puddin, .registration = TRUE)
+useDynLib(libgrav, .registration = TRUE)
 export(
   MSUN,
   total_mass,

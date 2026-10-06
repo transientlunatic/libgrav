@@ -1,5 +1,5 @@
 /// Integration tests for the `binary` module — exercises the public API only.
-use puddin::binary::{chi_eff, chi_p, chirp_mass, mass_ratio, symmetric_mass_ratio, total_mass};
+use grav::binary::{chi_eff, chi_p, chirp_mass, mass_ratio, symmetric_mass_ratio, total_mass};
 use uom::si::f64::Mass;
 use uom::si::mass::kilogram;
 

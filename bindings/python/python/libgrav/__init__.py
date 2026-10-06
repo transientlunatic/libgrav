@@ -1,4 +1,4 @@
-"""Puddin — mathematical and physical primitives for gravitational-wave astronomy.
+"""libgrav — mathematical and physical primitives for gravitational-wave astronomy.
 
 Public API
 ----------
@@ -18,7 +18,7 @@ Mass functions return values in **kilograms**; use ``astropy.constants`` or
 Examples
 --------
 >>> import numpy as np
->>> from puddin import chirp_mass
+>>> from libgrav import chirp_mass
 >>> chirp_mass(30 * 1.989e30, 30 * 1.989e30)   # plain SI
 array([...])
 
@@ -31,15 +31,15 @@ from __future__ import annotations
 
 import numpy as np
 
-from puddin.units import to_kg, to_rad, to_dimensionless, to_hz
-from puddin import _puddin as _rust
+from libgrav.units import to_kg, to_rad, to_dimensionless, to_hz
+from libgrav import _libgrav as _rust
 
 # ── JAX availability detection ────────────────────────────────────────────────
 
 try:
     import jax
     import jax.numpy as jnp
-    import puddin.jax_wrapper as _jax
+    import libgrav.jax_wrapper as _jax
 
     def _is_jax(x) -> bool:
         return isinstance(x, jax.Array)
@@ -218,7 +218,7 @@ def spin_components(
         (which also determines the inclination :math:`\iota`) requires
         knowledge of the orbital angular momentum magnitude
         :math:`|L|(f_\mathrm{ref})` and is provided by
-        :func:`puddin.lalsim.spins_to_lalsim`.
+        :func:`libgrav.lalsim.spins_to_lalsim`.
 
     Parameters
     ----------
@@ -268,7 +268,7 @@ def orbital_angular_momentum(m1, m2, f_ref) -> np.ndarray:
     wave frequency :math:`f_\mathrm{ref}`.
 
     Higher-order post-Newtonian corrections are not included; for production
-    injection generation use :func:`puddin.lalsim.spins_to_lalsim`, which
+    injection generation use :func:`libgrav.lalsim.spins_to_lalsim`, which
     delegates to LALSimulation's full PN implementation.
 
     Parameters
@@ -303,6 +303,127 @@ def orbital_angular_momentum(m1, m2, f_ref) -> np.ndarray:
     )
 
 
+def transform_precessing_spins(
+    theta_jn, phi_jl, tilt1, tilt2, phi12, a1, a2, m1, m2, f_ref, phase=0.0
+) -> tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+]:
+    r"""Transform precessing-spin parameters into Cartesian components and inclination.
+
+    Converts the bilby / LALInference spin parameterisation (angles measured
+    relative to the total angular momentum :math:`\mathbf{J}`) into the
+    inclination and Cartesian spin components used directly by waveform
+    generators, by constructing
+    :math:`\mathbf{J} = \mathbf{L}_\mathrm{N} + \mathbf{S}_1 + \mathbf{S}_2`
+    (using the Newtonian orbital angular momentum with its 1PN
+    point-particle correction — no spin-orbit term) and rotating from the
+    L-frame through the J-frame into the frame the requested reference
+    orbital phase implies.
+
+    This is a from-scratch reimplementation of LALSimulation's
+    ``SimInspiralTransformPrecessingNewInitialConditions`` — it does not
+    call LALSimulation and has no LALSuite dependency, so it is available
+    wherever libgrav is (Python, Julia, WASM, R, the CLI).  It reproduces
+    LALSimulation's output to within floating-point precision (verified
+    against ``lalsimulation.SimInspiralTransformPrecessingNewInitialConditions``
+    for aligned, precessing, and extreme-mass-ratio configurations).
+
+    Parameters
+    ----------
+    theta_jn : array-like
+        Inclination of :math:`\mathbf{J}` relative to the line of sight, in
+        radians.  Accepts astropy/pint angle Quantities.
+    phi_jl : array-like
+        Azimuthal angle of :math:`\mathbf{L}_\mathrm{N}` about
+        :math:`\mathbf{J}`, in radians.
+    tilt1, tilt2 : array-like
+        Spin tilt angles :math:`\theta_1, \theta_2` measured from
+        :math:`\mathbf{L}_\mathrm{N}`, in radians.  Values in
+        :math:`[0, \pi]`.
+    phi12 : array-like
+        Azimuthal angle of spin 2 relative to spin 1 in the orbital plane,
+        in radians.
+    a1, a2 : array-like
+        Dimensionless spin magnitudes :math:`\chi_1, \chi_2 \in [0, 1]`.
+    m1, m2 : array-like
+        Component masses in SI (kg), or unit-carrying mass Quantities.
+    f_ref : array-like
+        Gravitational-wave reference frequency in Hz at which the spin
+        components are defined.
+    phase : array-like, optional
+        Reference orbital phase in radians.  Default 0.
+
+    Returns
+    -------
+    iota : numpy.ndarray
+        Inclination of :math:`\mathbf{L}_\mathrm{N}` relative to the line of
+        sight in radians, after the J→L rotation.
+    S1x, S1y, S1z, S2x, S2y, S2z : numpy.ndarray
+        Cartesian dimensionless spin components, each of the same shape as
+        the broadcast inputs.
+
+    Notes
+    -----
+    Like LALSimulation's routine, this omits spin-orbit corrections to
+    :math:`|\mathbf{L}_\mathrm{N}|` (only the Newtonian value and its 1PN
+    point-particle correction are used).  For the simpler aligned-spin-only
+    decomposition with no J-frame rotation, see :func:`spin_components`.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from libgrav import transform_precessing_spins
+    >>> iota, s1x, s1y, s1z, s2x, s2y, s2z = transform_precessing_spins(
+    ...     theta_jn=np.array([0.4]), phi_jl=np.array([0.3]),
+    ...     tilt1=np.array([0.5]), tilt2=np.array([0.3]),
+    ...     phi12=np.array([1.2]),
+    ...     a1=np.array([0.6]), a2=np.array([0.4]),
+    ...     m1=np.array([30 * 1.989e30]),
+    ...     m2=np.array([20 * 1.989e30]),
+    ...     f_ref=np.array([20.0]),
+    ... )
+    """
+    if _any_jax(theta_jn, phi_jl, tilt1, tilt2, phi12, a1, a2, m1, m2, f_ref, phase):
+        return _jax.transform_precessing_spins(
+            theta_jn, phi_jl, tilt1, tilt2, phi12, a1, a2, m1, m2, f_ref, phase
+        )
+    (
+        theta_jn_, phi_jl_, tilt1_, tilt2_, phi12_,
+        a1_, a2_, m1_, m2_, f_ref_, phase_,
+    ) = np.broadcast_arrays(
+        to_rad(theta_jn),
+        to_rad(phi_jl),
+        to_rad(tilt1),
+        to_rad(tilt2),
+        to_rad(phi12),
+        to_dimensionless(a1),
+        to_dimensionless(a2),
+        to_kg(m1),
+        to_kg(m2),
+        to_hz(f_ref),
+        to_rad(phase),
+    )
+    return _rust.transform_precessing_spins(
+        np.ascontiguousarray(theta_jn_),
+        np.ascontiguousarray(phi_jl_),
+        np.ascontiguousarray(tilt1_),
+        np.ascontiguousarray(tilt2_),
+        np.ascontiguousarray(phi12_),
+        np.ascontiguousarray(a1_),
+        np.ascontiguousarray(a2_),
+        np.ascontiguousarray(m1_),
+        np.ascontiguousarray(m2_),
+        np.ascontiguousarray(f_ref_),
+        np.ascontiguousarray(phase_),
+    )
+
+
 __all__ = [
     "total_mass",
     "mass_ratio",
@@ -314,4 +435,5 @@ __all__ = [
     "chi_p",
     "spin_components",
     "orbital_angular_momentum",
+    "transform_precessing_spins",
 ]

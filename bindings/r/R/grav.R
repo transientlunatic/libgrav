@@ -1,6 +1,6 @@
-# ── R/puddin.R ────────────────────────────────────────────────────────────────
+# ── R/grav.R ────────────────────────────────────────────────────────────────
 #
-# R interface to the Puddin shared library.
+# R interface to the libgrav shared library.
 #
 # All functions are vectorised via base R `Vectorize()`.  For large arrays,
 # consider using the scalar forms directly inside `vapply()` or `mapply()` for
@@ -16,39 +16,39 @@ MSUN <- 1.988416e30
 # ── internal scalar wrappers calling the C ABI ────────────────────────────────
 
 .total_mass_scalar <- function(m1_kg, m2_kg) {
-  .C("r_puddin_total_mass",
+  .C("r_grav_total_mass",
      m1_kg  = as.double(m1_kg),
      m2_kg  = as.double(m2_kg),
      result = double(1L),
-     PACKAGE = "Puddin")$result
+     PACKAGE = "libgrav")$result
 }
 
 .mass_ratio_scalar <- function(m1_kg, m2_kg) {
-  .C("r_puddin_mass_ratio",
+  .C("r_grav_mass_ratio",
      m1_kg  = as.double(m1_kg),
      m2_kg  = as.double(m2_kg),
      result = double(1L),
-     PACKAGE = "Puddin")$result
+     PACKAGE = "libgrav")$result
 }
 
 .symmetric_mass_ratio_scalar <- function(m1_kg, m2_kg) {
-  .C("r_puddin_symmetric_mass_ratio",
+  .C("r_grav_symmetric_mass_ratio",
      m1_kg  = as.double(m1_kg),
      m2_kg  = as.double(m2_kg),
      result = double(1L),
-     PACKAGE = "Puddin")$result
+     PACKAGE = "libgrav")$result
 }
 
 .chirp_mass_scalar <- function(m1_kg, m2_kg) {
-  .C("r_puddin_chirp_mass",
+  .C("r_grav_chirp_mass",
      m1_kg  = as.double(m1_kg),
      m2_kg  = as.double(m2_kg),
      result = double(1L),
-     PACKAGE = "Puddin")$result
+     PACKAGE = "libgrav")$result
 }
 
 .chi_eff_scalar <- function(m1_kg, m2_kg, a1, a2, tilt1, tilt2) {
-  .C("r_puddin_chi_eff",
+  .C("r_grav_chi_eff",
      m1_kg  = as.double(m1_kg),
      m2_kg  = as.double(m2_kg),
      a1     = as.double(a1),
@@ -56,11 +56,11 @@ MSUN <- 1.988416e30
      tilt1  = as.double(tilt1),
      tilt2  = as.double(tilt2),
      result = double(1L),
-     PACKAGE = "Puddin")$result
+     PACKAGE = "libgrav")$result
 }
 
 .chi_p_scalar <- function(m1_kg, m2_kg, a1, a2, tilt1, tilt2) {
-  .C("r_puddin_chi_p",
+  .C("r_grav_chi_p",
      m1_kg  = as.double(m1_kg),
      m2_kg  = as.double(m2_kg),
      a1     = as.double(a1),
@@ -68,7 +68,7 @@ MSUN <- 1.988416e30
      tilt1  = as.double(tilt1),
      tilt2  = as.double(tilt2),
      result = double(1L),
-     PACKAGE = "Puddin")$result
+     PACKAGE = "libgrav")$result
 }
 
 # ── public vectorised API ─────────────────────────────────────────────────────
@@ -128,14 +128,14 @@ masses_from_chirp_mass_q <- function(mc_kg, q) {
   mc_kg <- as.double(mc_kg)
   q_vec <- as.double(q)
   m1 <- mapply(function(mc, qv)
-    .C("r_puddin_m1_from_mc_q",
+    .C("r_grav_m1_from_mc_q",
        mc_kg = mc, q = qv, result = double(1L),
-       PACKAGE = "Puddin")$result,
+       PACKAGE = "libgrav")$result,
     mc_kg, q_vec)
   m2 <- mapply(function(mc, qv)
-    .C("r_puddin_m2_from_mc_q",
+    .C("r_grav_m2_from_mc_q",
        mc_kg = mc, q = qv, result = double(1L),
-       PACKAGE = "Puddin")$result,
+       PACKAGE = "libgrav")$result,
     mc_kg, q_vec)
   list(m1 = unname(m1), m2 = unname(m2))
 }
@@ -158,14 +158,14 @@ masses_from_chirp_mass_eta <- function(mc_kg, eta) {
   mc_kg   <- as.double(mc_kg)
   eta_vec <- as.double(eta)
   m1 <- mapply(function(mc, ev)
-    .C("r_puddin_m1_from_mc_eta",
+    .C("r_grav_m1_from_mc_eta",
        mc_kg = mc, eta = ev, result = double(1L),
-       PACKAGE = "Puddin")$result,
+       PACKAGE = "libgrav")$result,
     mc_kg, eta_vec)
   m2 <- mapply(function(mc, ev)
-    .C("r_puddin_m2_from_mc_eta",
+    .C("r_grav_m2_from_mc_eta",
        mc_kg = mc, eta = ev, result = double(1L),
-       PACKAGE = "Puddin")$result,
+       PACKAGE = "libgrav")$result,
     mc_kg, eta_vec)
   list(m1 = unname(m1), m2 = unname(m2))
 }

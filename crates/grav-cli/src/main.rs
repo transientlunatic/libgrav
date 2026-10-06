@@ -1,5 +1,5 @@
 use clap::{ArgAction, Parser, Subcommand};
-use puddin::binary::{
+use grav::binary::{
     chi_eff, chi_p, chirp_mass, mass_ratio, masses_from_chirp_mass_eta, masses_from_chirp_mass_q,
     symmetric_mass_ratio, total_mass,
 };
@@ -17,7 +17,7 @@ const MSUN: f64 = 1.988_416e30;
 /// Output is a single number on stdout, suitable for shell pipelines.
 /// Use --verbose to include a label and units.
 #[derive(Parser)]
-#[command(name = "puddin", version, author)]
+#[command(name = "grav", version, author)]
 struct Cli {
     /// Accept and emit mass values in kilograms instead of solar masses
     #[arg(long, global = true, action = ArgAction::SetTrue)]

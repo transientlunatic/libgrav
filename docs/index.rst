@@ -1,5 +1,5 @@
-Puddin
-======
+libgrav
+=======
 
 .. toctree::
    :maxdepth: 1
@@ -18,4 +18,4 @@ Puddin
    :maxdepth: 2
    :caption: Rust API
 
-   api/crates/puddin/index
+   api/crates/grav/index

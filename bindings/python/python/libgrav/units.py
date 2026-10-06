@@ -1,11 +1,11 @@
-"""Unit adapter layer for puddin.
+"""Unit adapter layer for libgrav.
 
 Accepts quantities from either ``astropy.units`` or ``pint`` and normalises
 them to plain SI numpy arrays.  Both libraries expose a compatible
 ``.to(unit).value`` / ``.to(unit).magnitude`` interface; we detect which is
 present via duck-typing so callers are not forced to use a specific library.
 
-All public functions in puddin expect SI inputs:
+All public functions in libgrav expect SI inputs:
 
 * mass → kilograms
 * angle → radians

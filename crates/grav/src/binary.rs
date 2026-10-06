@@ -26,7 +26,7 @@ use uom::si::mass::kilogram;
 /// ```
 /// use uom::si::f64::Mass;
 /// use uom::si::mass::kilogram;
-/// use puddin::binary::total_mass;
+/// use grav::binary::total_mass;
 ///
 /// const MSUN: f64 = 1.988_416e30;
 /// let m1 = Mass::new::<kilogram>(30.0 * MSUN);
@@ -47,7 +47,7 @@ pub fn total_mass(m1: Mass, m2: Mass) -> Mass {
 /// ```
 /// use uom::si::f64::Mass;
 /// use uom::si::mass::kilogram;
-/// use puddin::binary::mass_ratio;
+/// use grav::binary::mass_ratio;
 ///
 /// const MSUN: f64 = 1.988_416e30;
 /// let m1 = Mass::new::<kilogram>(30.0 * MSUN);
@@ -71,7 +71,7 @@ pub fn mass_ratio(m1: Mass, m2: Mass) -> f64 {
 /// ```
 /// use uom::si::f64::Mass;
 /// use uom::si::mass::kilogram;
-/// use puddin::binary::symmetric_mass_ratio;
+/// use grav::binary::symmetric_mass_ratio;
 ///
 /// const MSUN: f64 = 1.988_416e30;
 /// let m1 = Mass::new::<kilogram>(30.0 * MSUN);
@@ -99,7 +99,7 @@ pub fn symmetric_mass_ratio(m1: Mass, m2: Mass) -> f64 {
 /// ```
 /// use uom::si::f64::Mass;
 /// use uom::si::mass::kilogram;
-/// use puddin::binary::chirp_mass;
+/// use grav::binary::chirp_mass;
 ///
 /// const MSUN: f64 = 1.988_416e30;
 /// let m1 = Mass::new::<kilogram>(30.0 * MSUN);
@@ -135,7 +135,7 @@ pub fn chirp_mass(m1: Mass, m2: Mass) -> Mass {
 /// ```
 /// use uom::si::f64::Mass;
 /// use uom::si::mass::kilogram;
-/// use puddin::binary::{chirp_mass, mass_ratio, masses_from_chirp_mass_q};
+/// use grav::binary::{chirp_mass, mass_ratio, masses_from_chirp_mass_q};
 ///
 /// const MSUN: f64 = 1.988_416e30;
 /// let m1_in = Mass::new::<kilogram>(30.0 * MSUN);
@@ -178,7 +178,7 @@ pub fn masses_from_chirp_mass_q(mc: Mass, q: f64) -> (Mass, Mass) {
 /// ```
 /// use uom::si::f64::Mass;
 /// use uom::si::mass::kilogram;
-/// use puddin::binary::{chirp_mass, symmetric_mass_ratio, masses_from_chirp_mass_eta};
+/// use grav::binary::{chirp_mass, symmetric_mass_ratio, masses_from_chirp_mass_eta};
 ///
 /// const MSUN: f64 = 1.988_416e30;
 /// let m1_in = Mass::new::<kilogram>(30.0 * MSUN);
@@ -222,7 +222,7 @@ pub fn masses_from_chirp_mass_eta(mc: Mass, eta: f64) -> (Mass, Mass) {
 /// ```
 /// use uom::si::f64::Mass;
 /// use uom::si::mass::kilogram;
-/// use puddin::binary::chi_eff;
+/// use grav::binary::chi_eff;
 /// use std::f64::consts::PI;
 ///
 /// const MSUN: f64 = 1.988_416e30;
@@ -263,7 +263,7 @@ pub fn chi_eff(m1: Mass, m2: Mass, a1: f64, a2: f64, tilt1: f64, tilt2: f64) -> 
 /// ```
 /// use uom::si::f64::Mass;
 /// use uom::si::mass::kilogram;
-/// use puddin::binary::chi_p;
+/// use grav::binary::chi_p;
 /// use std::f64::consts::FRAC_PI_2;
 ///
 /// const MSUN: f64 = 1.988_416e30;
@@ -317,7 +317,7 @@ pub fn chi_p(m1: Mass, m2: Mass, a1: f64, a2: f64, tilt1: f64, tilt2: f64) -> f6
 /// # Examples
 ///
 /// ```
-/// use puddin::binary::spin_components;
+/// use grav::binary::spin_components;
 /// use std::f64::consts::FRAC_PI_2;
 ///
 /// // Aligned spins: both along z-axis
@@ -376,7 +376,7 @@ const G_SI: f64 = 6.674_30e-11; // m³ kg⁻¹ s⁻²
 /// ```
 /// use uom::si::f64::Mass;
 /// use uom::si::mass::kilogram;
-/// use puddin::binary::orbital_angular_momentum;
+/// use grav::binary::orbital_angular_momentum;
 ///
 /// const MSUN: f64 = 1.988_416e30;
 /// let m1 = Mass::new::<kilogram>(30.0 * MSUN);
@@ -390,6 +390,178 @@ pub fn orbital_angular_momentum(m1: Mass, m2: Mass, f_ref: f64) -> f64 {
     let m_kg = m1_kg + m2_kg;
     let mu_kg = m1_kg * m2_kg / m_kg;
     mu_kg * (G_SI * m_kg).powf(2.0 / 3.0) / (std::f64::consts::PI * f_ref).powf(1.0 / 3.0)
+}
+
+// ── Precessing spin frame transform ──────────────────────────────────────────
+
+/// Solar mass in kilograms, matching LALSuite's `LAL_MSUN_SI` to machine
+/// precision.  [`transform_precessing_spins`] must reproduce LALSimulation's
+/// internal PN velocity parameter exactly, so it uses this rather than the
+/// coarser `1.988_416e30` used in this module's other doctests/tests.
+const LAL_MSUN_SI: f64 = 1.988_409_870_698_050_731_911_960_804_878_414_216e30;
+
+/// Solar mass in seconds (`G M_sun / c^3`), matching LALSuite's `LAL_MTSUN_SI`.
+const LAL_MTSUN_SI: f64 = 4.925_490_947_641_266_978_197_229_498_498_379_006e-6;
+
+/// Transform bilby / LALInference precessing-spin parameters into the
+/// Cartesian spin components and inclination LALSimulation waveform
+/// generators expect.
+///
+/// This reproduces LALSimulation's
+/// `XLALSimInspiralTransformPrecessingNewInitialConditions`: it constructs
+/// **J** = **L_N** + **S₁** + **S₂** using the Newtonian orbital angular
+/// momentum with its 1PN point-particle correction (no spin-orbit term —
+/// matching upstream, see eq. 2.9 of gr-qc/9506022 and eq. 4.7 of
+/// arXiv:1212.5520), then rotates from the L-frame through the J-frame into
+/// the frame LALSimulation uses to generate a waveform at the given
+/// reference orbital phase.
+///
+/// # Arguments
+///
+/// * `theta_jn` — inclination of **J** relative to the line of sight (rad).
+/// * `phi_jl`   — azimuth of **L_N** about **J** (rad).
+/// * `tilt1`, `tilt2` — spin tilt angles θ₁, θ₂ from **L_N** (rad).
+/// * `phi12`    — azimuthal angle of spin 2 relative to spin 1 (rad).
+/// * `a1`, `a2` — dimensionless spin magnitudes ∈ [0, 1].
+/// * `m1`, `m2` — component masses (SI: kg).
+/// * `f_ref`    — reference GW frequency (Hz); must be nonzero.
+/// * `phase`    — reference orbital phase (rad).
+///
+/// # Returns
+///
+/// `(iota, S1x, S1y, S1z, S2x, S2y, S2z)` — inclination of **L_N** relative
+/// to the line of sight, and the Cartesian spin components in the frame
+/// LALSimulation waveform generators expect.
+///
+/// # Examples
+///
+/// ```
+/// use uom::si::f64::Mass;
+/// use uom::si::mass::kilogram;
+/// use grav::binary::transform_precessing_spins;
+///
+/// const MSUN: f64 = 1.988_416e30;
+/// let m1 = Mass::new::<kilogram>(30.0 * MSUN);
+/// let m2 = Mass::new::<kilogram>(20.0 * MSUN);
+///
+/// // Aligned spins (tilt = 0): iota reduces to theta_jn and the in-plane
+/// // components vanish, matching `spin_components`.
+/// let (iota, s1x, s1y, s1z, s2x, s2y, s2z) =
+///     transform_precessing_spins(0.4, 0.3, 0.0, 0.0, 1.2, 0.6, 0.4, m1, m2, 20.0, 0.0);
+/// assert!((iota - 0.4).abs() < 1e-12);
+/// assert!(s1x.abs() < 1e-12 && s1y.abs() < 1e-12 && (s1z - 0.6).abs() < 1e-12);
+/// assert!(s2x.abs() < 1e-12 && s2y.abs() < 1e-12 && (s2z - 0.4).abs() < 1e-12);
+/// ```
+#[allow(clippy::too_many_arguments)]
+pub fn transform_precessing_spins(
+    theta_jn: f64,
+    phi_jl: f64,
+    tilt1: f64,
+    tilt2: f64,
+    phi12: f64,
+    a1: f64,
+    a2: f64,
+    m1: Mass,
+    m2: Mass,
+    f_ref: f64,
+    phase: f64,
+) -> (f64, f64, f64, f64, f64, f64, f64) {
+    debug_assert!(f_ref != 0.0, "f_ref must be nonzero");
+
+    let m1_msun = m1.get::<kilogram>() / LAL_MSUN_SI;
+    let m2_msun = m2.get::<kilogram>() / LAL_MSUN_SI;
+    let m_total = m1_msun + m2_msun;
+    let eta = symmetric_mass_ratio(m1, m2);
+    let v0 = (m_total * LAL_MTSUN_SI * std::f64::consts::PI * f_ref).cbrt();
+
+    // |L_N|, with its 1PN point-particle correction only (no spin-orbit term).
+    let l_2pn = 1.5 + eta / 6.0;
+    let l_mag = m_total * m_total * eta / v0 * (1.0 + v0 * v0 * l_2pn);
+
+    // Starting frame: L_N along z; unit spin vectors relative to L_N, with
+    // azimuths anchored at `phase` (S1) and `phi12 + phase` (S2).
+    let (mut lnx, mut lny, mut lnz) = (0.0_f64, 0.0_f64, 1.0_f64);
+    let (mut s1x, mut s1y, mut s1z) = (
+        tilt1.sin() * phase.cos(),
+        tilt1.sin() * phase.sin(),
+        tilt1.cos(),
+    );
+    let (mut s2x, mut s2y, mut s2z) = (
+        tilt2.sin() * (phi12 + phase).cos(),
+        tilt2.sin() * (phi12 + phase).sin(),
+        tilt2.cos(),
+    );
+
+    // Mass²-weighted spins to find J's direction (physical angular momentum).
+    let jx = m1_msun * m1_msun * a1 * s1x + m2_msun * m2_msun * a2 * s2x;
+    let jy = m1_msun * m1_msun * a1 * s1y + m2_msun * m2_msun * a2 * s2y;
+    let jz = l_mag + m1_msun * m1_msun * a1 * s1z + m2_msun * m2_msun * a2 * s2z;
+    let j_norm = (jx * jx + jy * jy + jz * jz).sqrt();
+    let theta0 = (jz / j_norm).acos();
+    let phi0 = jy.atan2(jx);
+
+    let rotate_z = |angle: f64, x: f64, y: f64| {
+        (
+            x * angle.cos() - y * angle.sin(),
+            x * angle.sin() + y * angle.cos(),
+        )
+    };
+    let rotate_y = |angle: f64, x: f64, z: f64| {
+        (
+            x * angle.cos() + z * angle.sin(),
+            -x * angle.sin() + z * angle.cos(),
+        )
+    };
+
+    // Rotation 1: about z by -phi0 (LNhat, fixed along z, is unaffected).
+    (s1x, s1y) = rotate_z(-phi0, s1x, s1y);
+    (s2x, s2y) = rotate_z(-phi0, s2x, s2y);
+
+    // Rotation 2: about y by -theta0, bringing Jhat onto z.
+    (lnx, lnz) = rotate_y(-theta0, lnx, lnz);
+    (s1x, s1z) = rotate_y(-theta0, s1x, s1z);
+    (s2x, s2z) = rotate_y(-theta0, s2x, s2z);
+
+    // Rotation 3: about z by (phi_jl - pi), placing L_N at the requested
+    // azimuth about J.
+    let angle3 = phi_jl - std::f64::consts::PI;
+    (lnx, lny) = rotate_z(angle3, lnx, lny);
+    (s1x, s1y) = rotate_z(angle3, s1x, s1y);
+    (s2x, s2y) = rotate_z(angle3, s2x, s2y);
+
+    // Observer direction N in the J-aligned frame; iota is the angle between
+    // L_N (as rotated so far) and N.
+    let (mut nx, mut ny, nz) = (0.0_f64, theta_jn.sin(), theta_jn.cos());
+    let iota = (nx * lnx + ny * lny + nz * lnz).acos();
+
+    // Rotations 4-5: bring L_N onto z to read off spin components there.
+    let theta_lj = lnz.acos();
+    let phi_l = lny.atan2(lnx);
+
+    (s1x, s1y) = rotate_z(-phi_l, s1x, s1y);
+    (s2x, s2y) = rotate_z(-phi_l, s2x, s2y);
+    (nx, ny) = rotate_z(-phi_l, nx, ny);
+
+    (s1x, s1z) = rotate_y(-theta_lj, s1x, s1z);
+    (s2x, s2z) = rotate_y(-theta_lj, s2x, s2z);
+    // N's z-component (line-of-sight vs L_N) isn't needed past this point.
+    (nx, _) = rotate_y(-theta_lj, nx, nz);
+
+    // Rotation 6: align azimuth to the requested reference phase.
+    let phi_n = ny.atan2(nx);
+    let angle6 = std::f64::consts::FRAC_PI_2 - phi_n - phase;
+    (s1x, s1y) = rotate_z(angle6, s1x, s1y);
+    (s2x, s2y) = rotate_z(angle6, s2x, s2y);
+
+    (
+        iota,
+        a1 * s1x,
+        a1 * s1y,
+        a1 * s1z,
+        a2 * s2x,
+        a2 * s2y,
+        a2 * s2z,
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -626,8 +798,13 @@ mod tests {
     #[test]
     fn spin_components_s2_phi12_quarter_turn() {
         // tilt2 = π/2, phi12 = π/2 → S2 along y
-        let (_, _, _, s2x, s2y, s2z) =
-            spin_components(0.0, 0.5, 0.0, std::f64::consts::FRAC_PI_2, std::f64::consts::FRAC_PI_2);
+        let (_, _, _, s2x, s2y, s2z) = spin_components(
+            0.0,
+            0.5,
+            0.0,
+            std::f64::consts::FRAC_PI_2,
+            std::f64::consts::FRAC_PI_2,
+        );
         assert!(s2x.abs() < 1e-14, "S2x={s2x}");
         assert!((s2y - 0.5).abs() < 1e-14, "S2y={s2y}");
         assert!(s2z.abs() < 1e-14, "S2z={s2z}");
@@ -651,7 +828,10 @@ mod tests {
         let mu = m1 * m2 / m;
         let expected = mu * (G_SI * m).powf(2.0 / 3.0) / (std::f64::consts::PI * f).powf(1.0 / 3.0);
         let got = orbital_angular_momentum(solar(30.0), solar(20.0), f);
-        assert!((got / expected - 1.0).abs() < 1e-10, "got={got} expected={expected}");
+        assert!(
+            (got / expected - 1.0).abs() < 1e-10,
+            "got={got} expected={expected}"
+        );
     }
 
     #[test]
@@ -669,6 +849,158 @@ mod tests {
         let l_ab = orbital_angular_momentum(solar(30.0), solar(20.0), 20.0);
         let l_ba = orbital_angular_momentum(solar(20.0), solar(30.0), 20.0);
         assert!((l_ab / l_ba - 1.0).abs() < 1e-12);
+    }
+
+    // ── transform_precessing_spins ───────────────────────────────────────────
+    //
+    // Reference values below were generated with the actual LALSimulation
+    // C library (`lalsimulation.SimInspiralTransformPrecessingNewInitialConditions`,
+    // via its Python/SWIG bindings), not transcribed from documentation, and
+    // agree with this Rust port to within 1e-9 (bit-for-bit, in practice) —
+    // confirming the port is numerically faithful to upstream LALSuite.
+
+    /// Solar mass in kilograms, matching LALSuite's `LAL_MSUN_SI` exactly —
+    /// needed here (unlike `solar()`) because these reference values were
+    /// generated with that precise constant.
+    const LAL_MSUN_KG: f64 = 1.988_409_870_698_050_731_911_960_804_878_414_216e30;
+
+    fn lal_solar(m: f64) -> Mass {
+        Mass::new::<kilogram>(m * LAL_MSUN_KG)
+    }
+
+    #[test]
+    fn transform_precessing_spins_matches_lalsimulation_precessing() {
+        let (iota, s1x, s1y, s1z, s2x, s2y, s2z) = transform_precessing_spins(
+            0.4,
+            0.3,
+            0.5,
+            0.3,
+            1.2,
+            0.6,
+            0.4,
+            lal_solar(30.0),
+            lal_solar(20.0),
+            20.0,
+            0.0,
+        );
+        let expected = [
+            0.383072563130684,
+            -0.28710948916277035,
+            0.01771231708241292,
+            0.5265495371342236,
+            -0.04953631276943223,
+            -0.10732802301558862,
+            0.38213459565024244,
+        ];
+        let got = [iota, s1x, s1y, s1z, s2x, s2y, s2z];
+        for (g, e) in got.iter().zip(expected.iter()) {
+            assert!((g - e).abs() < 1e-9, "got={got:?} expected={expected:?}");
+        }
+    }
+
+    #[test]
+    fn transform_precessing_spins_matches_lalsimulation_nonzero_phase() {
+        // Same system as above but with a nonzero reference phase — this
+        // exercises the phase-dependent azimuth handling that differs from
+        // `spin_components` (which fixes S1's azimuth at zero).
+        let (iota, s1x, s1y, s1z, s2x, s2y, s2z) = transform_precessing_spins(
+            0.4,
+            0.3,
+            0.5,
+            0.3,
+            1.2,
+            0.6,
+            0.4,
+            lal_solar(30.0),
+            lal_solar(20.0),
+            20.0,
+            0.7,
+        );
+        let expected = [
+            0.38307256313068433,
+            -0.2081828617349333,
+            0.19850813843162324,
+            0.5265495371342236,
+            -0.10703007257147708,
+            -0.05017683103355657,
+            0.38213459565024244,
+        ];
+        let got = [iota, s1x, s1y, s1z, s2x, s2y, s2z];
+        for (g, e) in got.iter().zip(expected.iter()) {
+            assert!((g - e).abs() < 1e-9, "got={got:?} expected={expected:?}");
+        }
+    }
+
+    #[test]
+    fn transform_precessing_spins_matches_lalsimulation_extreme_mass_ratio() {
+        let (iota, s1x, s1y, s1z, s2x, s2y, s2z) = transform_precessing_spins(
+            2.7,
+            5.0,
+            0.1,
+            3.0,
+            0.2,
+            0.99,
+            0.99,
+            lal_solar(40.0),
+            lal_solar(35.0),
+            10.0,
+            1.5,
+        );
+        let expected = [
+            2.7443427707016905,
+            0.0948327860585488,
+            0.02784090905974611,
+            0.9850541236252456,
+            0.12356067828990265,
+            0.0652020690433003,
+            -0.980092571634441,
+        ];
+        let got = [iota, s1x, s1y, s1z, s2x, s2y, s2z];
+        for (g, e) in got.iter().zip(expected.iter()) {
+            assert!((g - e).abs() < 1e-9, "got={got:?} expected={expected:?}");
+        }
+    }
+
+    #[test]
+    fn transform_precessing_spins_matches_lalsimulation_antialigned_s1() {
+        let (iota, s1x, s1y, s1z, s2x, s2y, s2z) = transform_precessing_spins(
+            3.14159,
+            1.0,
+            std::f64::consts::PI,
+            0.0,
+            0.5,
+            0.5,
+            0.5,
+            lal_solar(30.0),
+            lal_solar(20.0),
+            20.0,
+            0.0,
+        );
+        let expected = [3.141590000011358, 0.0, 0.0, -0.5, 0.0, 0.0, 0.5];
+        let got = [iota, s1x, s1y, s1z, s2x, s2y, s2z];
+        for (g, e) in got.iter().zip(expected.iter()) {
+            assert!((g - e).abs() < 1e-9, "got={got:?} expected={expected:?}");
+        }
+    }
+
+    #[test]
+    fn transform_precessing_spins_aligned_reduces_to_theta_jn() {
+        let (iota, s1x, s1y, s1z, s2x, s2y, s2z) = transform_precessing_spins(
+            0.4,
+            0.3,
+            0.0,
+            0.0,
+            1.2,
+            0.6,
+            0.4,
+            solar(30.0),
+            solar(20.0),
+            20.0,
+            0.0,
+        );
+        assert!((iota - 0.4).abs() < 1e-12);
+        assert!(s1x.abs() < 1e-12 && s1y.abs() < 1e-12 && (s1z - 0.6).abs() < 1e-12);
+        assert!(s2x.abs() < 1e-12 && s2y.abs() < 1e-12 && (s2z - 0.4).abs() < 1e-12);
     }
 
     // ── Property tests ────────────────────────────────────────────────────────
@@ -816,6 +1148,55 @@ mod tests {
                 "m1 roundtrip failed: got {} expected {}", r1.get::<kilogram>() / MSUN_KG, m1);
             prop_assert!((r2.get::<kilogram>() / (m2 * MSUN_KG) - 1.0).abs() < 1e-9,
                 "m2 roundtrip failed: got {} expected {}", r2.get::<kilogram>() / MSUN_KG, m2);
+        }
+
+        #[test]
+        fn prop_transform_precessing_spins_s1_magnitude(
+            m1 in 1.0_f64..200.0,
+            m2 in 1.0_f64..200.0,
+            theta_jn in 0.0_f64..std::f64::consts::PI,
+            phi_jl in 0.0_f64..(2.0 * std::f64::consts::PI),
+            tilt1 in 0.0_f64..=std::f64::consts::PI,
+            tilt2 in 0.0_f64..=std::f64::consts::PI,
+            phi12 in 0.0_f64..(2.0 * std::f64::consts::PI),
+            a1 in 0.0_f64..=1.0,
+            a2 in 0.0_f64..=1.0,
+            f_ref in 1.0_f64..500.0,
+            phase in 0.0_f64..(2.0 * std::f64::consts::PI),
+        ) {
+            let (_, s1x, s1y, s1z, s2x, s2y, s2z) = transform_precessing_spins(
+                theta_jn, phi_jl, tilt1, tilt2, phi12, a1, a2,
+                solar(m1), solar(m2), f_ref, phase,
+            );
+            let mag1 = (s1x * s1x + s1y * s1y + s1z * s1z).sqrt();
+            let mag2 = (s2x * s2x + s2y * s2y + s2z * s2z).sqrt();
+            prop_assert!((mag1 - a1).abs() < 1e-9, "|S1|={mag1} != a1={a1}");
+            prop_assert!((mag2 - a2).abs() < 1e-9, "|S2|={mag2} != a2={a2}");
+        }
+
+        #[test]
+        fn prop_transform_precessing_spins_aligned_matches_theta_jn(
+            m1 in 1.0_f64..200.0,
+            m2 in 1.0_f64..200.0,
+            theta_jn in 0.0_f64..std::f64::consts::PI,
+            phi_jl in 0.0_f64..(2.0 * std::f64::consts::PI),
+            phi12 in 0.0_f64..(2.0 * std::f64::consts::PI),
+            a1 in 0.0_f64..=1.0,
+            a2 in 0.0_f64..=1.0,
+            f_ref in 1.0_f64..500.0,
+            phase in 0.0_f64..(2.0 * std::f64::consts::PI),
+        ) {
+            // When both spins are aligned with L_N (tilt=0), J is parallel to
+            // L_N, so iota must equal theta_jn exactly and the transform must
+            // agree with `spin_components`.
+            let (iota, s1x, s1y, s1z, s2x, s2y, s2z) = transform_precessing_spins(
+                theta_jn, phi_jl, 0.0, 0.0, phi12, a1, a2,
+                solar(m1), solar(m2), f_ref, phase,
+            );
+            let (e1x, e1y, e1z, e2x, e2y, e2z) = spin_components(a1, a2, 0.0, 0.0, phi12);
+            prop_assert!((iota - theta_jn).abs() < 1e-9, "iota={iota} != theta_jn={theta_jn}");
+            prop_assert!((s1x - e1x).abs() < 1e-9 && (s1y - e1y).abs() < 1e-9 && (s1z - e1z).abs() < 1e-9);
+            prop_assert!((s2x - e2x).abs() < 1e-9 && (s2y - e2y).abs() < 1e-9 && (s2z - e2z).abs() < 1e-9);
         }
     }
 }

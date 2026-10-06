@@ -1,7 +1,9 @@
-"""Tests for puddin.lalsim — LALSimulation-backed spin frame transformation.
+"""Tests for libgrav.lalsim — LALSimulation-compatible spin frame transformation.
 
-All tests in this file require lalsimulation and lal to be installed.
-The module is skipped entirely if those packages are unavailable.
+libgrav.lalsim has no LALSuite dependency (see its module docstring), so
+these tests run without lalsimulation/lal installed.  The one exception is
+``test_precessing_matches_lalsim_directly``, which cross-checks against a
+live LALSimulation call and is skipped if lalsimulation/lal aren't available.
 
 Run with: pytest bindings/python/tests/test_lalsim.py
 """
@@ -13,13 +15,11 @@ import math
 import numpy as np
 import pytest
 
-lalsimulation = pytest.importorskip("lalsimulation")
-lal = pytest.importorskip("lal")
+from libgrav import lalsim as libgrav_lalsim
 
-import puddin
-from puddin import lalsim as puddin_lalsim  # noqa: E402 — after skip guard
-
-MSUN_KG = lal.MSUN_SI   # use the exact lal value for round-trip consistency
+# Exact LAL_MSUN_SI value, so results are directly comparable to real
+# LALSimulation output without requiring `lal` to be installed here.
+MSUN_KG = 1.988_409_870_698_050_731_911_960_804_878_414_216e30
 
 
 # ---------------------------------------------------------------------------
@@ -35,11 +35,12 @@ def _sol(m_sun: float) -> np.ndarray:
 # ===========================================================================
 
 class TestSpinsToLalsim:
-    r"""Tests for puddin.lalsim.spins_to_lalsim.
+    r"""Tests for libgrav.lalsim.spins_to_lalsim.
 
-    The function wraps
-    ``lalsimulation.SimInspiralTransformPrecessingNewInitialConditions``
-    and returns ``(iota, S1x, S1y, S1z, S2x, S2y, S2z)`` as numpy arrays.
+    A thin alias for :func:`libgrav.transform_precessing_spins`, matching
+    the output convention of
+    ``lalsimulation.SimInspiralTransformPrecessingNewInitialConditions``:
+    returns ``(iota, S1x, S1y, S1z, S2x, S2y, S2z)`` as numpy arrays.
 
     Aligned-spin special case
     -------------------------
@@ -51,15 +52,14 @@ class TestSpinsToLalsim:
     * ``S1x = S1y = 0``, ``S1z = a1 * cos(tilt1)``
     * ``S2x = S2y = 0``, ``S2z = a2 * cos(tilt2)``
 
-    These results can be verified independently of lalsim; the fast-path
-    branch in the implementation relies on this.
+    These results can be verified independently of lalsim.
     """
 
     # --- output structure ---------------------------------------------------
 
     def test_returns_seven_arrays(self):
         """Return value is a 7-tuple of numpy arrays."""
-        result = puddin_lalsim.spins_to_lalsim(
+        result = libgrav_lalsim.spins_to_lalsim(
             theta_jn=np.array([0.4]), phi_jl=np.array([0.3]),
             tilt1=np.array([0.0]), tilt2=np.array([0.0]),
             phi12=np.array([0.0]),
@@ -75,7 +75,7 @@ class TestSpinsToLalsim:
         """All output arrays have the same length as the inputs."""
         n = 10
         rng = np.random.default_rng(0)
-        result = puddin_lalsim.spins_to_lalsim(
+        result = libgrav_lalsim.spins_to_lalsim(
             theta_jn=rng.uniform(0, math.pi, n),
             phi_jl=rng.uniform(0, 2 * math.pi, n),
             tilt1=rng.uniform(0, math.pi, n),
@@ -96,7 +96,7 @@ class TestSpinsToLalsim:
     def test_aligned_iota_equals_theta_jn(self):
         """For aligned spins, iota = theta_jn."""
         theta_jn = 0.7
-        iota, *_ = puddin_lalsim.spins_to_lalsim(
+        iota, *_ = libgrav_lalsim.spins_to_lalsim(
             theta_jn=np.array([theta_jn]), phi_jl=np.array([0.3]),
             tilt1=np.array([0.0]), tilt2=np.array([0.0]),
             phi12=np.array([0.0]),
@@ -108,7 +108,7 @@ class TestSpinsToLalsim:
 
     def test_aligned_s1_transverse_zero(self):
         """For aligned spins, S1x = S1y = 0."""
-        iota, s1x, s1y, s1z, s2x, s2y, s2z = puddin_lalsim.spins_to_lalsim(
+        iota, s1x, s1y, s1z, s2x, s2y, s2z = libgrav_lalsim.spins_to_lalsim(
             theta_jn=np.array([0.4]), phi_jl=np.array([0.0]),
             tilt1=np.array([0.0]), tilt2=np.array([0.0]),
             phi12=np.array([0.0]),
@@ -122,7 +122,7 @@ class TestSpinsToLalsim:
     def test_aligned_s1z_equals_a1(self):
         """For aligned spins, S1z = a1."""
         a1 = 0.6
-        _, _, _, s1z, *_ = puddin_lalsim.spins_to_lalsim(
+        _, _, _, s1z, *_ = libgrav_lalsim.spins_to_lalsim(
             theta_jn=np.array([0.4]), phi_jl=np.array([0.0]),
             tilt1=np.array([0.0]), tilt2=np.array([0.0]),
             phi12=np.array([0.0]),
@@ -135,7 +135,7 @@ class TestSpinsToLalsim:
     def test_aligned_s2z_equals_a2(self):
         """For aligned spins, S2z = a2."""
         a2 = 0.4
-        *_, s2x, s2y, s2z = puddin_lalsim.spins_to_lalsim(
+        *_, s2x, s2y, s2z = libgrav_lalsim.spins_to_lalsim(
             theta_jn=np.array([0.4]), phi_jl=np.array([0.0]),
             tilt1=np.array([0.0]), tilt2=np.array([0.0]),
             phi12=np.array([0.0]),
@@ -148,7 +148,7 @@ class TestSpinsToLalsim:
     def test_antialigned_s1z_equals_minus_a1(self):
         """For anti-aligned S1 (tilt1=π), S1z = -a1."""
         a1 = 0.7
-        _, _, _, s1z, *_ = puddin_lalsim.spins_to_lalsim(
+        _, _, _, s1z, *_ = libgrav_lalsim.spins_to_lalsim(
             theta_jn=np.array([0.4]), phi_jl=np.array([0.0]),
             tilt1=np.array([math.pi]), tilt2=np.array([0.0]),
             phi12=np.array([0.0]),
@@ -160,7 +160,7 @@ class TestSpinsToLalsim:
 
     def test_zero_spins_give_all_zero_components(self):
         """a1=a2=0 gives all-zero spin components."""
-        iota, s1x, s1y, s1z, s2x, s2y, s2z = puddin_lalsim.spins_to_lalsim(
+        iota, s1x, s1y, s1z, s2x, s2y, s2z = libgrav_lalsim.spins_to_lalsim(
             theta_jn=np.array([0.5]), phi_jl=np.array([1.0]),
             tilt1=np.array([0.3]), tilt2=np.array([0.8]),
             phi12=np.array([2.0]),
@@ -175,6 +175,8 @@ class TestSpinsToLalsim:
 
     def test_precessing_matches_lalsim_directly(self):
         """Precessing-spin result matches a direct lalsim call."""
+        lalsimulation = pytest.importorskip("lalsimulation")
+
         theta_jn = 0.4
         phi_jl   = 0.3
         tilt1    = 0.5
@@ -191,7 +193,7 @@ class TestSpinsToLalsim:
             theta_jn, phi_jl, tilt1, tilt2, phi12, a1, a2, m1, m2, f_ref, phase
         )
 
-        result = puddin_lalsim.spins_to_lalsim(
+        result = libgrav_lalsim.spins_to_lalsim(
             theta_jn=np.array([theta_jn]), phi_jl=np.array([phi_jl]),
             tilt1=np.array([tilt1]), tilt2=np.array([tilt2]),
             phi12=np.array([phi12]),
@@ -211,7 +213,7 @@ class TestSpinsToLalsim:
         n = 20
         a1 = rng.uniform(0.0, 1.0, n)
         a2 = rng.uniform(0.0, 1.0, n)
-        iota, s1x, s1y, s1z, s2x, s2y, s2z = puddin_lalsim.spins_to_lalsim(
+        iota, s1x, s1y, s1z, s2x, s2y, s2z = libgrav_lalsim.spins_to_lalsim(
             theta_jn=rng.uniform(0, math.pi, n),
             phi_jl=rng.uniform(0, 2 * math.pi, n),
             tilt1=rng.uniform(0.01, math.pi - 0.01, n),  # avoid aligned limit
@@ -230,7 +232,7 @@ class TestSpinsToLalsim:
         """Returned iota lies in [0, π]."""
         rng = np.random.default_rng(3)
         n = 30
-        iota, *_ = puddin_lalsim.spins_to_lalsim(
+        iota, *_ = libgrav_lalsim.spins_to_lalsim(
             theta_jn=rng.uniform(0, math.pi, n),
             phi_jl=rng.uniform(0, 2 * math.pi, n),
             tilt1=rng.uniform(0, math.pi, n),
@@ -253,7 +255,7 @@ class TestSpinsToLalsim:
         astropy = pytest.importorskip("astropy")
         from astropy import units as u
 
-        result_units = puddin_lalsim.spins_to_lalsim(
+        result_units = libgrav_lalsim.spins_to_lalsim(
             theta_jn=np.array([0.4]), phi_jl=np.array([0.3]),
             tilt1=np.array([0.0]), tilt2=np.array([0.0]),
             phi12=np.array([0.0]),
@@ -261,7 +263,7 @@ class TestSpinsToLalsim:
             m1=30 * u.Msun, m2=20 * u.Msun,
             f_ref=np.array([20.0]), phase=np.array([0.0]),
         )
-        result_plain = puddin_lalsim.spins_to_lalsim(
+        result_plain = libgrav_lalsim.spins_to_lalsim(
             theta_jn=np.array([0.4]), phi_jl=np.array([0.3]),
             tilt1=np.array([0.0]), tilt2=np.array([0.0]),
             phi12=np.array([0.0]),
