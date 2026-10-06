@@ -3,7 +3,7 @@ Type: Package
 Title: Gravitational-wave Binary Parameter Conversions
 Version: 0.1.0
 Authors@R: c(
-    person("The libgrav Authors", role = c("aut", "cre"),
+    person("Daniel", "Williams", role = c("aut", "cre"),
            email = "libgrav@example.com"))
 Description: R interface to the libgrav library, providing fast and accurate
     parameter transformations for compact binary systems in gravitational-wave
@@ -12,6 +12,7 @@ Description: R interface to the libgrav library, providing fast and accurate
 License: MIT + file LICENSE
 Encoding: UTF-8
 NeedsCompilation: yes
+SystemRequirements: Cargo (Rust package manager), rustc
 Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

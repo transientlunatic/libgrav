@@ -12,7 +12,8 @@ crates/grav/          Core Rust library (uom SI units, proptest)
 bindings/julia/         cdylib C ABI — used by Julia, C, C++, Fortran, Go, MATLAB, R
 bindings/python/        PyO3/maturin extension — excluded from Cargo workspace
 bindings/wasm/          wasm-bindgen — workspace member but requires wasm32 target
-bindings/r/             R package wrapping the C ABI via .C() shims
+bindings/r/             R package wrapping the C ABI via .C() shims; src/rust is a
+                        vendored copy of the Rust sources (generated, statically linked)
 examples/{c,cpp,fortran,go,matlab}/
 docs/                   Sphinx + sphinx-rust + furo + myst-parser + sphinxcontrib-katex
 .github/workflows/      ci.yml, release.yml, pages.yml
@@ -62,10 +63,22 @@ julia --project=. test/runtests.jl
 
 ### R
 ```bash
-cargo build --release -p grav-capi         # shared library required
-GRAV_LIB=$(pwd)/target/release R CMD INSTALL bindings/r
+R CMD INSTALL bindings/r                      # compiles the vendored Rust in src/rust (needs cargo)
 cd bindings/r && Rscript tests/testthat.R
+python3 scripts/vendor_r.py                   # re-vendor after changing crates/grav or bindings/julia
+python3 scripts/vendor_r.py --check           # CI check that src/rust is in sync
+# Optional: link a prebuilt shared lib instead of building Rust
+cargo build --release -p grav-capi && GRAV_LIB=$(pwd)/target/release R CMD INSTALL bindings/r
 ```
+
+### Releasing
+```bash
+git tag v0.2.0 && git push origin v0.2.0   # that's it
+python3 scripts/set_version.py v0.2.0      # optional: stamp versions locally
+```
+The tag is the source of truth; `release.yml` stamps it into `Cargo.toml`,
+`bindings/python/{Cargo,pyproject}.toml`, `Project.toml` and the R `DESCRIPTION`
+in every job.  Versions committed in the repo are placeholders.
 
 ### Docs
 ```bash

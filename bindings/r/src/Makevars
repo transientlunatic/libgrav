@@ -1,29 +1,30 @@
 # src/Makevars
 #
-# Build configuration for the libgrav R package.
+# By default the Rust code in src/rust (vendored by scripts/vendor_r.py) is
+# compiled with cargo at install time and linked statically into libgrav.so, so
+# `R CMD INSTALL` / install.packages() need only a Rust toolchain (cargo, rustc).
 #
-# The package links against libgrav — the cdylib built by the
-# bindings/julia Rust crate.  Build it first:
-#
-#   cargo build --release -p grav-capi
-#
-# Then install the R package from the monorepo root:
-#
-#   R CMD INSTALL bindings/r
-#
-# To override the library location (e.g. after `cargo install` or when the
-# monorepo is not at the expected relative path), set GRAV_LIB:
+# To link against a prebuilt shared libgrav instead (e.g. the one from a
+# release tarball or `cargo build --release -p grav-capi`), set GRAV_LIB:
 #
 #   GRAV_LIB=/opt/libgrav/lib R CMD INSTALL bindings/r
 
 ifdef GRAV_LIB
-  _GRAV_LIB := $(GRAV_LIB)
+  PKG_CPPFLAGS = -Irust
+  PKG_LIBS     = -L$(GRAV_LIB) -lgrav -Wl,-rpath,$(GRAV_LIB)
 else
-  # Default: monorepo layout — src/ is three levels below the repo root.
-  _GRAV_LIB := $(abspath ../../../target/release)
+  PKG_CPPFLAGS = -Irust
+  PKG_LIBS     = $(RUST_LIB) -lpthread -ldl -lm
+
+  RUST_TARGET_DIR = $(CURDIR)/rust/target
+  RUST_LIB        = $(RUST_TARGET_DIR)/release/libgrav.a
+
+  $(SHLIB): $(RUST_LIB)
+
+  $(RUST_LIB):
+	cargo build --release --manifest-path rust/Cargo.toml -p grav-capi \
+	  --target-dir $(RUST_TARGET_DIR)
 endif
 
-_GRAV_INCLUDE := $(abspath ../../../bindings/julia/include)
-
-PKG_CPPFLAGS = -I$(_GRAV_INCLUDE)
-PKG_LIBS     = -L$(_GRAV_LIB) -lgrav -Wl,-rpath,$(_GRAV_LIB)
+clean:
+	rm -rf rust/target

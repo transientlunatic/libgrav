@@ -5,6 +5,7 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+publish = false
 description = "Command-line interface to the Grav gravitational-wave parameter library"
 
 [[bin]]
