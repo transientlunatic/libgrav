@@ -1,6 +1,7 @@
 useDynLib(libgrav, .registration = TRUE)
 export(
   MSUN,
+  binary,
   total_mass,
   mass_ratio,
   symmetric_mass_ratio,

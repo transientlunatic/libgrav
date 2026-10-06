@@ -3,7 +3,8 @@
 Run with: pytest bindings/python/tests/
 
 Exercises:
-- plain numpy inputs (SI)
+- plain numpy inputs (SI) via libgrav.binary submodule
+- plain numpy inputs (SI) via top-level libgrav namespace (backward compat)
 - astropy.units.Quantity inputs
 - pint.Quantity inputs (if pint is installed)
 - JAX inputs (if jax is installed)
@@ -18,7 +19,69 @@ import pytest
 import numpy as np
 
 import libgrav
+import libgrav.binary
 from conftest import MSUN_KG, sol
+
+
+# ── libgrav.binary submodule tests ─────────────────────────────────────────────
+
+class TestBinarySubmodule:
+    """Verify that the libgrav.binary submodule exposes the same functions."""
+
+    def test_submodule_accessible(self):
+        assert hasattr(libgrav, "binary")
+
+    def test_total_mass(self):
+        result = libgrav.binary.total_mass(sol(30), sol(20))
+        assert math.isclose(result[0] / MSUN_KG, 50.0, rel_tol=1e-8)
+
+    def test_mass_ratio(self):
+        result = libgrav.binary.mass_ratio(sol(30), sol(15))
+        assert math.isclose(result[0], 0.5, rel_tol=1e-8)
+
+    def test_symmetric_mass_ratio(self):
+        result = libgrav.binary.symmetric_mass_ratio(sol(30), sol(30))
+        assert math.isclose(result[0], 0.25, rel_tol=1e-8)
+
+    def test_chirp_mass(self):
+        mc = libgrav.binary.chirp_mass(sol(30), sol(30))[0] / MSUN_KG
+        expected = 60.0 * 0.25 ** (3.0 / 5.0)
+        assert math.isclose(mc, expected, rel_tol=1e-8)
+
+    def test_masses_from_chirp_mass_q_roundtrip(self):
+        mc = libgrav.binary.chirp_mass(sol(30), sol(20))
+        q = libgrav.binary.mass_ratio(sol(30), sol(20))
+        (m1, m2) = libgrav.binary.masses_from_chirp_mass_q(mc, q)
+        assert math.isclose(m1[0] / MSUN_KG, 30.0, rel_tol=1e-8)
+        assert math.isclose(m2[0] / MSUN_KG, 20.0, rel_tol=1e-8)
+
+    def test_masses_from_chirp_mass_eta_roundtrip(self):
+        mc = libgrav.binary.chirp_mass(sol(30), sol(20))
+        eta = libgrav.binary.symmetric_mass_ratio(sol(30), sol(20))
+        (m1, m2) = libgrav.binary.masses_from_chirp_mass_eta(mc, eta)
+        assert math.isclose(m1[0] / MSUN_KG, 30.0, rel_tol=1e-8)
+        assert math.isclose(m2[0] / MSUN_KG, 20.0, rel_tol=1e-8)
+
+    def test_chi_eff(self):
+        x = libgrav.binary.chi_eff(
+            sol(30), sol(30), np.array([0.5]), np.array([0.5]),
+            np.array([0.0]), np.array([0.0])
+        )[0]
+        assert math.isclose(x, 0.5, rel_tol=1e-8)
+
+    def test_chi_p(self):
+        x = libgrav.binary.chi_p(
+            sol(30), sol(30), np.array([1.0]), np.array([0.0]),
+            np.array([math.pi / 2]), np.array([0.0])
+        )[0]
+        assert math.isclose(x, 1.0, rel_tol=1e-8)
+
+    def test_results_match_toplevel(self):
+        """libgrav.binary.* and libgrav.* must return identical results."""
+        m1, m2 = sol(35), sol(25)
+        assert np.allclose(libgrav.binary.chirp_mass(m1, m2), libgrav.chirp_mass(m1, m2))
+        assert np.allclose(libgrav.binary.total_mass(m1, m2), libgrav.total_mass(m1, m2))
+        assert np.allclose(libgrav.binary.mass_ratio(m1, m2), libgrav.mass_ratio(m1, m2))
 
 
 # ── plain numpy tests ─────────────────────────────────────────────────────────

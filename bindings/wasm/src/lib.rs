@@ -237,12 +237,36 @@ macro_rules! spin_components_component {
     };
 }
 
-spin_components_component!(spin_components_s1x, "Cartesian spin component S1x (L-frame, dimensionless).", 0);
-spin_components_component!(spin_components_s1y, "Cartesian spin component S1y (L-frame, dimensionless).", 1);
-spin_components_component!(spin_components_s1z, "Cartesian spin component S1z (L-frame, dimensionless).", 2);
-spin_components_component!(spin_components_s2x, "Cartesian spin component S2x (L-frame, dimensionless).", 3);
-spin_components_component!(spin_components_s2y, "Cartesian spin component S2y (L-frame, dimensionless).", 4);
-spin_components_component!(spin_components_s2z, "Cartesian spin component S2z (L-frame, dimensionless).", 5);
+spin_components_component!(
+    spin_components_s1x,
+    "Cartesian spin component S1x (L-frame, dimensionless).",
+    0
+);
+spin_components_component!(
+    spin_components_s1y,
+    "Cartesian spin component S1y (L-frame, dimensionless).",
+    1
+);
+spin_components_component!(
+    spin_components_s1z,
+    "Cartesian spin component S1z (L-frame, dimensionless).",
+    2
+);
+spin_components_component!(
+    spin_components_s2x,
+    "Cartesian spin component S2x (L-frame, dimensionless).",
+    3
+);
+spin_components_component!(
+    spin_components_s2y,
+    "Cartesian spin component S2y (L-frame, dimensionless).",
+    4
+);
+spin_components_component!(
+    spin_components_s2z,
+    "Cartesian spin component S2z (L-frame, dimensionless).",
+    5
+);
 
 // ── orbital angular momentum ─────────────────────────────────────────────────
 
@@ -325,10 +349,38 @@ macro_rules! transform_precessing_spins_component {
     };
 }
 
-transform_precessing_spins_component!(transform_precessing_spins_iota, "Inclination of L_N relative to the line of sight, after the J→L rotation (radians).", 0);
-transform_precessing_spins_component!(transform_precessing_spins_s1x, "Cartesian spin component S1x after the precessing-spin frame transform.", 1);
-transform_precessing_spins_component!(transform_precessing_spins_s1y, "Cartesian spin component S1y after the precessing-spin frame transform.", 2);
-transform_precessing_spins_component!(transform_precessing_spins_s1z, "Cartesian spin component S1z after the precessing-spin frame transform.", 3);
-transform_precessing_spins_component!(transform_precessing_spins_s2x, "Cartesian spin component S2x after the precessing-spin frame transform.", 4);
-transform_precessing_spins_component!(transform_precessing_spins_s2y, "Cartesian spin component S2y after the precessing-spin frame transform.", 5);
-transform_precessing_spins_component!(transform_precessing_spins_s2z, "Cartesian spin component S2z after the precessing-spin frame transform.", 6);
+transform_precessing_spins_component!(
+    transform_precessing_spins_iota,
+    "Inclination of L_N relative to the line of sight, after the J→L rotation (radians).",
+    0
+);
+transform_precessing_spins_component!(
+    transform_precessing_spins_s1x,
+    "Cartesian spin component S1x after the precessing-spin frame transform.",
+    1
+);
+transform_precessing_spins_component!(
+    transform_precessing_spins_s1y,
+    "Cartesian spin component S1y after the precessing-spin frame transform.",
+    2
+);
+transform_precessing_spins_component!(
+    transform_precessing_spins_s1z,
+    "Cartesian spin component S1z after the precessing-spin frame transform.",
+    3
+);
+transform_precessing_spins_component!(
+    transform_precessing_spins_s2x,
+    "Cartesian spin component S2x after the precessing-spin frame transform.",
+    4
+);
+transform_precessing_spins_component!(
+    transform_precessing_spins_s2y,
+    "Cartesian spin component S2y after the precessing-spin frame transform.",
+    5
+);
+transform_precessing_spins_component!(
+    transform_precessing_spins_s2z,
+    "Cartesian spin component S2z after the precessing-spin frame transform.",
+    6
+);

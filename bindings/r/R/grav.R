@@ -199,3 +199,39 @@ chi_eff <- Vectorize(.chi_eff_scalar)
 #' @examples
 #' chi_p(30 * MSUN, 30 * MSUN, 0, 0, 0, 0)  # 0
 chi_p <- Vectorize(.chi_p_scalar)
+
+# ── binary environment ────────────────────────────────────────────────────────
+#
+# Groups all compact binary parameter functions under a single domain-organised
+# namespace, mirroring `libgrav.binary` in Python and `Grav.Binary` in Julia.
+#
+# Usage:
+#   library(libgrav)
+#   libgrav::binary$chirp_mass(30 * MSUN, 30 * MSUN)
+
+#' Compact binary parameter functions for gravitational-wave astronomy.
+#'
+#' An environment containing all binary system parameter functions, grouped
+#' under a single domain namespace.  Mirrors the \code{libgrav.binary} module
+#' in Python and the \code{Grav.Binary} module in Julia.
+#'
+#' Usage:
+#' \preformatted{
+#' library(libgrav)
+#' libgrav::binary$chirp_mass(30 * MSUN, 30 * MSUN) / MSUN  # ~26.1
+#' }
+#'
+#' @export
+binary <- new.env(parent = emptyenv())
+
+binary$MSUN                     <- MSUN
+binary$total_mass               <- total_mass
+binary$mass_ratio               <- mass_ratio
+binary$symmetric_mass_ratio     <- symmetric_mass_ratio
+binary$chirp_mass               <- chirp_mass
+binary$masses_from_chirp_mass_q <- masses_from_chirp_mass_q
+binary$masses_from_chirp_mass_eta <- masses_from_chirp_mass_eta
+binary$chi_eff                  <- chi_eff
+binary$chi_p                    <- chi_p
+
+lockEnvironment(binary, bindings = TRUE)

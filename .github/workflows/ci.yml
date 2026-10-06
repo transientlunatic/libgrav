@@ -43,9 +43,9 @@ jobs:
         run: cargo fmt --all --check
 
       - name: Clippy
-        # puddin-julia is a workspace cdylib; puddin-wasm is verified by the
+        # grav-capi is a workspace cdylib; grav-wasm is verified by the
         # separate wasm-build job (requires --target wasm32-unknown-unknown).
-        run: cargo clippy -p puddin -p puddin-julia -p puddin-cli -- -D warnings
+        run: cargo clippy -p grav -p grav-capi -p grav-cli -- -D warnings
 
   # ── Rust tests (unit, integration, doc-tests) ───────────────────────────────
 
@@ -60,22 +60,22 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: cargo test
-        run: cargo test -p puddin
+        run: cargo test -p grav
 
       - name: cargo doc
-        run: cargo doc -p puddin --no-deps
+        run: cargo doc -p grav --no-deps
 
       - name: Build CLI
-        run: cargo build -p puddin-cli
+        run: cargo build -p grav-cli
 
       - name: CLI smoke-test
         run: |
           # 30+30 Msun equal-mass binary — canonical GW150914-like values
-          mc=$(./target/debug/puddin chirp-mass 30 30)
+          mc=$(./target/debug/grav chirp-mass 30 30)
           # chirp mass of equal-mass 30+30 system is ~26.117 Msun
           awk -v v="$mc" 'BEGIN { if (v < 26.1 || v > 26.2) { exit 1 } }'
-          ./target/debug/puddin chi-eff 30 30 0.5 0.5 0 0  # aligned → 0.5
-          ./target/debug/puddin mass-ratio 30 15             # → 0.5
+          ./target/debug/grav chi-eff 30 30 0.5 0.5 0 0  # aligned → 0.5
+          ./target/debug/grav mass-ratio 30 15             # → 0.5
 
   # ── Python build & test ─────────────────────────────────────────────────────
 
@@ -167,14 +167,17 @@ jobs:
         run: npm install -g typescript
 
       - name: Copy TypeScript wrapper into pkg
-        run: cp bindings/wasm/js/puddin.ts bindings/wasm/pkg/
+        run: |
+          cp bindings/wasm/js/libgrav.ts bindings/wasm/pkg/
+          cp bindings/wasm/js/binary.ts bindings/wasm/pkg/
 
       - name: Type-check TypeScript wrapper
         # Use moduleResolution so the .js extension in the import is resolved.
         run: |
           tsc --strict --noEmit --moduleResolution bundler \
               --target ES2022 --module ESNext \
-              bindings/wasm/pkg/puddin.ts
+              bindings/wasm/pkg/libgrav.ts \
+              bindings/wasm/pkg/binary.ts
 
       - name: Upload WASM package artifact
         uses: actions/upload-artifact@v4
@@ -195,7 +198,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Build Rust shared library
-        run: cargo build --release -p puddin-julia
+        run: cargo build --release -p grav-capi
 
       - uses: julia-actions/setup-julia@v2
         with:
@@ -218,7 +221,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Build Rust shared library
-        run: cargo build --release -p puddin-julia
+        run: cargo build --release -p grav-capi
 
       - uses: r-lib/actions/setup-r@v2
         with:

@@ -203,6 +203,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "grav"
+version = "0.1.0"
+dependencies = [
+ "proptest",
+ "uom",
+]
+
+[[package]]
+name = "grav-capi"
+version = "0.1.0"
+dependencies = [
+ "grav",
+ "uom",
+]
+
+[[package]]
+name = "grav-cli"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "grav",
+ "uom",
+]
+
+[[package]]
+name = "grav-wasm"
+version = "0.1.0"
+dependencies = [
+ "grav",
+ "uom",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -349,40 +383,6 @@ dependencies = [
  "rusty-fork",
  "tempfile",
  "unarray",
-]
-
-[[package]]
-name = "puddin"
-version = "0.1.0"
-dependencies = [
- "proptest",
- "uom",
-]
-
-[[package]]
-name = "puddin-cli"
-version = "0.1.0"
-dependencies = [
- "clap",
- "puddin",
- "uom",
-]
-
-[[package]]
-name = "puddin-julia"
-version = "0.1.0"
-dependencies = [
- "puddin",
- "uom",
-]
-
-[[package]]
-name = "puddin-wasm"
-version = "0.1.0"
-dependencies = [
- "puddin",
- "uom",
- "wasm-bindgen",
 ]
 
 [[package]]

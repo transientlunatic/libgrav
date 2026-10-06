@@ -7,6 +7,13 @@ parameter computations.
 All functions accept and return SI values (`Float64`, kilograms for masses,
 radians for angles, dimensionless otherwise).
 
+Functions are organised by physics domain into submodules:
+
+- [`Grav.Binary`](@ref) — compact binary parameter conversions (masses, spins)
+
+All functions are also exported from the top-level `Grav` module for
+convenience, so `using Grav; chirp_mass(...)` works without the submodule.
+
 Use Julia broadcasting to apply scalar functions over arrays:
 
 ```julia
@@ -15,11 +22,30 @@ using Grav
 m1 = fill(30.0 * MSUN, 1000)
 m2 = fill(30.0 * MSUN, 1000)
 
-mc  = chirp_mass.(m1, m2)
+mc  = Binary.chirp_mass.(m1, m2)   # via submodule
+mc  = chirp_mass.(m1, m2)          # top-level shortcut
 eta = symmetric_mass_ratio.(m1, m2)
 ```
 """
 module Grav
+
+# ── Binary submodule ──────────────────────────────────────────────────────────
+
+"""
+    Binary
+
+Compact binary system parameter functions for gravitational-wave astronomy.
+
+All functions accept scalar `Float64` values in SI units (kg for mass, radians
+for angles).  Vectorisation is handled by Julia broadcasting:
+
+```julia
+using Grav
+
+mc = Binary.chirp_mass.(m1_array, m2_array)
+```
+"""
+module Binary
 
 export MSUN,
        total_mass, mass_ratio, symmetric_mass_ratio, chirp_mass,
@@ -262,4 +288,29 @@ function transform_precessing_spins(
     )
 end
 
-end # module
+end # module Binary
+
+# ── top-level re-exports (convenience shortcuts) ──────────────────────────────
+
+export Binary
+
+export MSUN,
+       total_mass, mass_ratio, symmetric_mass_ratio, chirp_mass,
+       masses_from_chirp_mass_q, masses_from_chirp_mass_eta,
+       chi_eff, chi_p,
+       spin_components, orbital_angular_momentum, transform_precessing_spins
+
+const MSUN = Binary.MSUN
+const total_mass = Binary.total_mass
+const mass_ratio = Binary.mass_ratio
+const symmetric_mass_ratio = Binary.symmetric_mass_ratio
+const chirp_mass = Binary.chirp_mass
+const masses_from_chirp_mass_q = Binary.masses_from_chirp_mass_q
+const masses_from_chirp_mass_eta = Binary.masses_from_chirp_mass_eta
+const chi_eff = Binary.chi_eff
+const chi_p = Binary.chi_p
+const spin_components = Binary.spin_components
+const orbital_angular_momentum = Binary.orbital_angular_momentum
+const transform_precessing_spins = Binary.transform_precessing_spins
+
+end # module Grav

@@ -1,7 +1,7 @@
 /**
  * TypeScript helpers for the Grav WASM package.
  *
- * The raw WASM module (`libgrav-wasm`) exposes vectorised functions that accept
+ * The raw WASM module (`grav-wasm`) exposes vectorised functions that accept
  * `Float64Array`.  This wrapper adds:
  *
  *   - `MSUN` – solar mass constant (kg)
@@ -10,7 +10,7 @@
  *
  * Usage (ESM / bundler):
  * ```ts
- * import { MSUN, chirp_mass, chirp_mass_scalar } from 'libgrav-wasm/libgrav';
+ * import { MSUN, chirp_mass, chirp_mass_scalar } from 'grav-wasm/libgrav';
  *
  * const mc = chirp_mass_scalar(30 * MSUN, 30 * MSUN);  // kg
  * ```

@@ -1,20 +1,29 @@
 # Language interfaces
 
-Puddin's core library is written in Rust and exposed to other languages through
+libgrav's core library is written in Rust and exposed to other languages through
 thin binding layers. All interfaces accept and return values in **SI units**
 (kilograms for mass, radians for angles). Unit conversion helpers are provided
 for the Python interface.
+
+Functions are organised by physics domain. The current domain is:
+
+- **`binary`** — compact binary system parameters (masses, spins)
+
+Each language exposes this as a submodule or namespace so callers can write
+`libgrav.binary.chirp_mass(...)`, `Grav.Binary.chirp_mass(...)`,
+`grav::binary::chirp_mass(...)`, etc.  All top-level names are also
+re-exported for backward compatibility.
 
 ---
 
 ## Command line
 
-Install the `puddin` CLI with Cargo:
+Install the `grav` CLI with Cargo:
 
 ```bash
-cargo install --git https://github.com/transientlunatic/puddin puddin-cli
+cargo install --git https://github.com/transientlunatic/puddin grav-cli
 # or, from a local checkout:
-cargo install --path crates/puddin-cli
+cargo install --path crates/grav-cli
 ```
 
 Pre-built binaries for Linux, macOS, and Windows are attached to each
@@ -28,21 +37,21 @@ Add `--verbose` (`-v`) for a labelled result with units.
 
 ```bash
 # Chirp mass of a 30+30 Msun binary
-puddin chirp-mass 30 30
+grav chirp-mass 30 30
 # → 26.116516898883617
 
-puddin chirp-mass 30 30 --verbose
+grav chirp-mass 30 30 --verbose
 # → chirp_mass = 26.116516898883617 Msun
 
 # Spin parameters
-puddin chi-eff 30 30 0.5 0.5 0.0 0.0    # both aligned at 0.5 → 0.5
-puddin chi-p   30 15 0.8 0.3 0.4 1.2
+grav chi-eff 30 30 0.5 0.5 0.0 0.0    # both aligned at 0.5 → 0.5
+grav chi-p   30 15 0.8 0.3 0.4 1.2
 
 # Masses in kilograms
-puddin --si chirp-mass 5.97e30 5.97e30
+grav --si chirp-mass 5.97e30 5.97e30
 
 # Compose with standard Unix tools
-MC=$(puddin chirp-mass 30 30)
+MC=$(grav chirp-mass 30 30)
 echo "Mc = $MC Msun"
 ```
 
@@ -67,41 +76,46 @@ magnitudes in [0, 1].  Both spin subcommands require `m1 ≥ m2`.
 Install from PyPI:
 
 ```bash
-pip install puddin
+pip install libgrav
 ```
 
 Optional extras:
 
 ```bash
-pip install "puddin[pint]"   # pint unit support
-pip install "puddin[jax]"    # JAX / JIT support
+pip install "libgrav[pint]"   # pint unit support
+pip install "libgrav[jax]"    # JAX / JIT support
 ```
 
 ### numpy arrays (SI)
 
 ```python
 import numpy as np
-import puddin
+import libgrav
+import libgrav.binary   # domain-organised submodule
 
 MSUN = 1.988_416e30  # kg
 
 m1 = np.full(1000, 30.0 * MSUN)
 m2 = np.full(1000, 30.0 * MSUN)
 
-mc  = puddin.chirp_mass(m1, m2)
-eta = puddin.symmetric_mass_ratio(m1, m2)
+# Recommended: use the binary submodule
+mc  = libgrav.binary.chirp_mass(m1, m2)
+eta = libgrav.binary.symmetric_mass_ratio(m1, m2)
+
+# Top-level shortcuts still work (backward compatible)
+mc  = libgrav.chirp_mass(m1, m2)
 ```
 
 ### astropy quantities
 
 ```python
 import astropy.units as u
-import puddin
+import libgrav
 
 m1 = 30 * u.Msun
 m2 = 30 * u.Msun
 
-mc = puddin.chirp_mass(m1, m2)   # returns astropy Quantity in kg
+mc = libgrav.chirp_mass(m1, m2)   # returns astropy Quantity in kg
 ```
 
 ### pint quantities
@@ -111,25 +125,25 @@ import pint
 ureg = pint.UnitRegistry()
 
 m1 = 30 * ureg.solar_mass
-mc = puddin.chirp_mass(m1, m1)
+mc = libgrav.chirp_mass(m1, m1)
 ```
 
 ### JAX
 
-Puddin functions are usable inside `jax.jit`-compiled code via
+libgrav functions are usable inside `jax.jit`-compiled code via
 `jax.pure_callback`. Analytical `custom_vjp` rules are registered so that
 gradients flow through correctly.
 
 ```python
 import jax
 import jax.numpy as jnp
-import puddin
+import libgrav
 
 MSUN = 1.988_416e30
 
 @jax.jit
 def log_chirp_mass(m1, m2):
-    return jnp.log(puddin.chirp_mass(m1, m2))
+    return jnp.log(libgrav.chirp_mass(m1, m2))
 
 m = jnp.array(30.0 * MSUN)
 val, grad = jax.value_and_grad(log_chirp_mass)(m, m)
@@ -142,7 +156,7 @@ val, grad = jax.value_and_grad(log_chirp_mass)(m, m)
 Install from npm:
 
 ```bash
-npm install puddin-wasm
+npm install grav-wasm
 ```
 
 The package is built with [wasm-pack](https://rustwasm.github.io/wasm-pack/) and
@@ -151,13 +165,23 @@ ships TypeScript declaration files. It targets modern ES module bundlers
 
 ### Vectorised API (`Float64Array`)
 
-All core functions accept and return `Float64Array` for batch processing:
+All core functions accept and return `Float64Array` for batch processing.
+Import from the `binary` submodule (recommended) or from the top-level module:
 
 ```ts
-import { chirp_mass, symmetric_mass_ratio, MSUN } from 'puddin-wasm/puddin';
+// Domain-organised import (recommended)
+import * as binary from 'grav-wasm/binary';
 
-const m1 = new Float64Array([30 * MSUN, 10 * MSUN]);
-const m2 = new Float64Array([30 * MSUN,  5 * MSUN]);
+const m1 = new Float64Array([30 * binary.MSUN, 10 * binary.MSUN]);
+const m2 = new Float64Array([30 * binary.MSUN,  5 * binary.MSUN]);
+
+const mc  = binary.chirp_mass(m1, m2);
+const eta = binary.symmetric_mass_ratio(m1, m2);
+```
+
+```ts
+// Top-level import (backward compatible)
+import { chirp_mass, symmetric_mass_ratio, MSUN } from 'grav-wasm/libgrav';
 
 const mc  = chirp_mass(m1, m2);
 const eta = symmetric_mass_ratio(m1, m2);
@@ -169,7 +193,7 @@ The TypeScript wrapper layer provides `*_scalar()` helpers that accept and
 return plain `number`, useful for single-event interactive work:
 
 ```ts
-import { chirp_mass_scalar, chi_eff_scalar, MSUN } from 'puddin-wasm/puddin';
+import { chirp_mass_scalar, chi_eff_scalar, MSUN } from 'grav-wasm/libgrav';
 
 const mc = chirp_mass_scalar(30 * MSUN, 30 * MSUN);
 
@@ -196,7 +220,7 @@ const xe = chi_eff_scalar(
 ## Julia
 
 The Julia interface uses [`ccall`](https://docs.julialang.org/en/v1/base/c/#ccall)
-to call into a Rust shared library (`libpuddin_julia.so` / `.dylib` / `.dll`).
+to call into a Rust shared library (`libgrav.so` / `.dylib` / `.dll`).
 The C API is **scalar only** — Julia's native broadcasting handles arrays
 idiomatically without any extra wrapping.
 
@@ -208,8 +232,8 @@ idiomatically without any extra wrapping.
 ### Build the shared library
 
 ```bash
-cargo build --release -p puddin-julia
-# → target/release/libpuddin_julia.{so,dylib,dll}
+cargo build --release -p grav-capi
+# → target/release/libgrav.{so,dylib,dll}
 ```
 
 ### Add the package
@@ -224,23 +248,26 @@ Pkg.develop(path="bindings/julia")
 ### Usage
 
 ```julia
-using Puddin
+using Grav
 
-const MSUN = Puddin.MSUN   # 1.988_416e30 kg
+const MSUN = Grav.MSUN   # 1.988_416e30 kg
 
-# Scalar
-mc = chirp_mass(30.0 * MSUN, 30.0 * MSUN)   # ≈ 26.1 M☉ in kg
+# Recommended: use the Binary submodule
+mc = Grav.Binary.chirp_mass(30.0 * MSUN, 30.0 * MSUN)   # ≈ 26.1 M☉ in kg
+
+# Top-level shortcuts also work (backward compatible)
+mc = chirp_mass(30.0 * MSUN, 30.0 * MSUN)
 
 # Vectorised via Julia broadcasting — no extra work needed
 m1 = rand(1000) .* 50.0 .* MSUN
 m2 = rand(1000) .* 50.0 .* MSUN
 
-mc_arr  = chirp_mass.(m1, m2)
-eta_arr = symmetric_mass_ratio.(m1, m2)
+mc_arr  = Grav.Binary.chirp_mass.(m1, m2)
+eta_arr = Grav.Binary.symmetric_mass_ratio.(m1, m2)
 
-xe_arr  = chi_eff.(m1, m2,
-                   fill(0.5, 1000), fill(0.3, 1000),
-                   fill(0.2, 1000), fill(1.1, 1000))
+xe_arr  = Grav.Binary.chi_eff.(m1, m2,
+                                 fill(0.5, 1000), fill(0.3, 1000),
+                                 fill(0.2, 1000), fill(1.1, 1000))
 ```
 
 ### Available functions
@@ -264,7 +291,7 @@ Add to `Cargo.toml`:
 
 ```toml
 [dependencies]
-puddin = "0.1"
+grav = "0.1"
 uom    = { version = "0.36", features = ["f64", "si"] }
 ```
 
@@ -272,7 +299,7 @@ All public functions use [uom](https://crates.io/crates/uom) quantity types
 for compile-time dimensional analysis:
 
 ```rust
-use puddin::binary::{chirp_mass, chi_eff, MSUN};
+use grav::binary::{chirp_mass, chi_eff, MSUN};
 use uom::si::f64::Mass;
 use uom::si::mass::kilogram;
 
@@ -291,29 +318,29 @@ no runtime checks needed.
 ## C
 
 The `bindings/julia` crate produces a standard C shared library.  Include
-`bindings/julia/include/puddin.h` to get the function declarations and the
-`PUDDIN_MSUN` constant.
+`bindings/julia/include/grav.h` to get the function declarations and the
+`GRAV_MSUN` constant.
 
 ```bash
 # Build the library
-cargo build --release -p puddin-julia
+cargo build --release -p grav-capi
 
 # Compile and link your program
 gcc example.c \
     -I bindings/julia/include \
-    -L target/release -lpuddin_julia \
+    -L target/release -lgrav \
     -Wl,-rpath,$(pwd)/target/release \
     -o example -lm
 ```
 
 ```c
-#include "puddin.h"
+#include "grav.h"
 #include <stdio.h>
 
 int main(void) {
-    double m1 = 30.0 * PUDDIN_MSUN;
-    double m2 = 30.0 * PUDDIN_MSUN;
-    printf("Chirp mass: %.4f Msun\n", puddin_chirp_mass(m1, m2) / PUDDIN_MSUN);
+    double m1 = 30.0 * GRAV_MSUN;
+    double m2 = 30.0 * GRAV_MSUN;
+    printf("Chirp mass: %.4f Msun\n", grav_chirp_mass(m1, m2) / GRAV_MSUN);
     return 0;
 }
 ```
@@ -324,25 +351,25 @@ See `examples/c/example.c` in the repository for a complete runnable example wit
 
 ## C++
 
-`puddin.h` includes an `extern "C"` guard, so the header is directly usable
-from C++ without modification.
+Include `grav/binary.hpp` to use the `grav::binary::` namespace (recommended),
+or fall back to the flat C API via `grav.h`.
 
 ```bash
 g++ example.cpp \
     -I bindings/julia/include \
-    -L target/release -lpuddin_julia \
+    -L target/release -lgrav \
     -Wl,-rpath,$(pwd)/target/release \
     -o example
 ```
 
 ```cpp
-#include "puddin.h"
+#include "grav/binary.hpp"   // provides grav::binary:: namespace
 #include <iostream>
 
 int main() {
-    constexpr double MSUN = PUDDIN_MSUN;
-    double m1 = 30.0 * MSUN, m2 = 30.0 * MSUN;
-    std::cout << "Chirp mass: " << puddin_chirp_mass(m1, m2) / MSUN << " Msun\n";
+    namespace binary = grav::binary;
+    double m1 = 30.0 * binary::MSUN, m2 = 30.0 * binary::MSUN;
+    std::cout << "Chirp mass: " << binary::chirp_mass(m1, m2) / binary::MSUN << " Msun\n";
 }
 ```
 
@@ -352,30 +379,22 @@ See `examples/cpp/example.cpp` in the repository for the full example.
 
 ## Fortran
 
-Fortran 2003+ `iso_c_binding` maps directly onto the C ABI.  No shim layer is
-needed — declare the interfaces with `bind(C)` and call them like normal
-Fortran procedures.
-
-```fortran
-use iso_c_binding, only: c_double
-
-interface
-    function puddin_chirp_mass(m1, m2) bind(C, name="puddin_chirp_mass")
-        import c_double
-        real(c_double), value :: m1, m2
-        real(c_double)        :: puddin_chirp_mass
-    end function
-end interface
-
-real(c_double), parameter :: MSUN = 1.988416e30_c_double
-print *, puddin_chirp_mass(30*MSUN, 30*MSUN) / MSUN  ! ~26.1
-```
+The `grav_binary` Fortran module (in `bindings/julia/include/grav_binary.f90`)
+groups all binary parameter interfaces under a single module, mirroring the
+domain-organised structure of the other language interfaces.
 
 ```bash
-gfortran example.f90 \
-    -L target/release -lpuddin_julia \
+gfortran bindings/julia/include/grav_binary.f90 example.f90 \
+    -L target/release -lgrav \
     -Wl,-rpath,$(pwd)/target/release \
     -o example
+```
+
+```fortran
+use grav_binary
+
+real(c_double), parameter :: MSUN = grav_binary_MSUN
+print *, chirp_mass(30*MSUN, 30*MSUN) / MSUN   ! ~26.1
 ```
 
 See `examples/fortran/example.f90` in the repository for the full example.
@@ -384,20 +403,31 @@ See `examples/fortran/example.f90` in the repository for the full example.
 
 ## Go
 
-Go's `cgo` interface handles the C ABI transparently.  Set the `#cgo`
-directives for include and library paths, then import the header and call
-functions as if they were Go functions prefixed with `C.`.
+Go's `cgo` interface handles the C ABI transparently.  The example below
+wraps the C calls in a `binary` struct that mirrors the domain-organised
+structure used in the other language interfaces.
 
 ```go
 // #cgo CFLAGS:  -I../../bindings/julia/include
-// #cgo LDFLAGS: -L../../target/release -lpuddin_julia -Wl,-rpath,../../target/release
-// #include "puddin.h"
+// #cgo LDFLAGS: -L../../target/release -lgrav -Wl,-rpath,../../target/release
+// #include "grav.h"
 import "C"
 import "fmt"
 
+var binary = struct {
+    MSUN      float64
+    ChirpMass func(float64, float64) float64
+    // ... other fields
+}{
+    MSUN: float64(C.GRAV_MSUN),
+    ChirpMass: func(m1, m2 float64) float64 {
+        return float64(C.grav_chirp_mass(C.double(m1), C.double(m2)))
+    },
+}
+
 func main() {
-    m := C.double(30.0 * C.PUDDIN_MSUN)
-    fmt.Printf("Chirp mass: %.4f Msun\n", float64(C.puddin_chirp_mass(m, m)) / float64(C.PUDDIN_MSUN))
+    m := 30.0 * binary.MSUN
+    fmt.Printf("Chirp mass: %.4f Msun\n", binary.ChirpMass(m, m)/binary.MSUN)
 }
 ```
 
@@ -406,6 +436,7 @@ cd examples/go && go run example.go
 ```
 
 See `examples/go/example.go` in the repository for the full example.
+A reusable `binary` package is also available at `bindings/go/binary/`.
 
 ---
 
@@ -418,7 +449,7 @@ part of the package.  All public functions are vectorised with `Vectorize()`.
 
 ```bash
 # Build the shared library first
-cargo build --release -p puddin-julia
+cargo build --release -p grav-capi
 
 # Install the R package
 R CMD INSTALL bindings/r
@@ -427,18 +458,21 @@ R CMD INSTALL bindings/r
 ### Usage
 
 ```r
-library(Puddin)
+library(libgrav)
 
-# Scalar
-chirp_mass(30 * MSUN, 30 * MSUN) / MSUN   # ~26.1
+# Domain-organised access via the binary environment (recommended)
+libgrav::binary$chirp_mass(30 * MSUN, 30 * MSUN) / MSUN   # ~26.1
+
+# Top-level functions still work (backward compatible)
+chirp_mass(30 * MSUN, 30 * MSUN) / MSUN
 
 # Vectorised — works automatically
 m1 <- c(30, 20, 10) * MSUN
 m2 <- c(30, 20,  5) * MSUN
-chirp_mass(m1, m2) / MSUN
+libgrav::binary$chirp_mass(m1, m2) / MSUN
 
 # Spin parameters
-chi_eff(30*MSUN, 30*MSUN, 0.5, 0.5, 0, 0)   # 0.5
+libgrav::binary$chi_eff(30*MSUN, 30*MSUN, 0.5, 0.5, 0, 0)   # 0.5
 ```
 
 > **Note on CRAN distribution:** producing a CRAN package with a compiled
@@ -450,24 +484,29 @@ chi_eff(30*MSUN, 30*MSUN, 0.5, 0.5, 0, 0)   # 0.5
 
 ## MATLAB
 
-Use MATLAB's `loadlibrary` / `calllib` to load the shared library directly.
-No wrapper code is needed — the C header is loaded at runtime.
+Use MATLAB's `loadlibrary` / `calllib` to load the shared library directly,
+then wrap functions in a struct for domain-organised access.
 
 ```matlab
-loadlibrary('libpuddin_julia', 'bindings/julia/include/puddin.h', 'alias', 'puddin');
+loadlibrary('libgrav', 'bindings/julia/include/grav.h', 'alias', 'grav');
 
 MSUN = 1.988416e30;
-mc   = calllib('puddin', 'puddin_chirp_mass', 30*MSUN, 30*MSUN) / MSUN;
+
+% Domain-organised binary struct (recommended)
+binary.MSUN      = MSUN;
+binary.chirp_mass = @(m1,m2) calllib('grav','grav_chirp_mass',m1,m2);
+% ... (see examples/matlab/example.m for all fields)
+
+mc = binary.chirp_mass(30*MSUN, 30*MSUN) / MSUN;
 fprintf('Chirp mass: %.4f Msun\n', mc);
 
-unloadlibrary('puddin');
+unloadlibrary('grav');
 ```
 
 For batch processing, `arrayfun` provides a vectorised wrapper:
 
 ```matlab
-masses_sun = 10:10:50;
-mc = arrayfun(@(m) calllib('puddin', 'puddin_chirp_mass', m*MSUN, m*MSUN)/MSUN, masses_sun);
+mc = arrayfun(@(m) binary.chirp_mass(m*MSUN, m*MSUN)/MSUN, 10:10:50);
 ```
 
 See `examples/matlab/example.m` in the repository for the full example.
