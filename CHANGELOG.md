@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Release pipeline fixes (found by the `v0.1.0-rc.1` dry run)
+- macOS x86_64 C library and CLI are cross-compiled from `macos-latest`; the
+  `macos-13` runner image no longer exists, so those jobs queued forever.
+- Python wheels use the stable ABI (`abi3-py310`): one wheel per platform covers
+  Python >= 3.10.  This fixes the manylinux build ("couldn't find any python
+  interpreters") and means macOS/Windows wheels are no longer tied to the single
+  interpreter on the runner.
+- Removed the `docker`-in-container QEMU step that broke the aarch64 wheel; it
+  is cross-compiled by the manylinux cross image instead.
+- The npm package now includes the compiled TypeScript wrappers
+  (`grav-wasm/libgrav`, `grav-wasm/binary`) with subpath exports
+  (`scripts/finish_wasm_pkg.py`); previously wasm-pack's `files` list omitted them.
+
 ### R package
 - Now self-contained: the Rust sources are vendored into `bindings/r/src/rust`
   (`scripts/vendor_r.py`) and compiled and statically linked at install time, so
